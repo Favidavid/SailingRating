@@ -7,8 +7,16 @@
 
 import scrapy
 
+class SeasonItem(scrapy.Item):
 
-class ScrapingItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class WeekItem(scrapy.Item):
+
+class RegattaItem(scrapy.Item):
+	fullScores = scrapy.field()
+	competitors = scrapy.field()
+
+class FullScoresItem(scrapy.Item):
+
+
+class ComptetitorsItem(scrapy.Item):
+	
