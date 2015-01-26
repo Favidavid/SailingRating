@@ -49,15 +49,23 @@ class seasons(CrawlSpider):
                 currentSchool = row.xpath('td[3]/a/text()')
                 scoreSchool = scoreSchoolItem()
                 scoreSchool['school'] = currentSchool
-                scoreSchool['divA'] = ## list of A division results
+                scoreSchool['divA'] = parse_school_score(row)## list of A division results
+            else:
+                scoreSchool = scoreSchoolItem()
+                scoreSchool['school'] = currentSchool
+                scoreSchool[row.xpath('@class').extract()[0] ] = parse_school_score(row)
             if (row.xpath('@class').extract()[0].equals(lastDivision) ): ############todo: last division
                 fullScores[currentSchool] = scoreSchool ##have to decide if using team placing (ie 1 or 2 or 3 etc) or schoolname as key
         yield fullScores
 
 
 
-    def parse_school_score(self, response):
+    def parse_school_score(self, row):
+        results = []
+        for column in row.xpath('td[contains(@class,"right")]')
+            results.append(column.xpath('text()').extract()[0])
 
+        return results
     def parse_division(self, response):
 
 
