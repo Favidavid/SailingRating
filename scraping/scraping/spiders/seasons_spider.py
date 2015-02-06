@@ -25,27 +25,25 @@ class seasons(CrawlSpider):
 
         #populate fullScoresItem
         fullScoresUrl = response.xpath('//*[@id="menu"]/li[4]/a/text()')
-        fullScoresItem = scrapy.Request(fullScoresUrl,callback=self.parse_full_scores)
-        retattaItem['fullScores'] = fullScoresItem
+        regattaItem['fullScores'] = scrapy.Request(fullScoresUrl,callback=self.parse_full_scores)
 
 
         #populate competitorsItem
-        competitorsItem = CompetitorsItem()
         competitorsLinks = LinkExtractor(restrict_xpaths=('//*[@id="menu"]'), allow=('.*/[A-E]/') ).extractLinks(response)
+        competitors = dict()
         #singlehanded regatta
         if (len(competitorsLinks) == 0):
-            competitorsItem['A'] = parse_singlehanded_competitors(response)
+            regattaItem['competitors'] = parse_singlehanded_competitors(response)
         
         #division regattas, could be single division
         else:
             for divisionLink in competitorsLinks:
-                divisionItem = scrapy.Request(divisionLink.url,callback=self.parse_division)
+                divisionCompetitors = scrapy.Request(divisionLink.url,callback=self.parse_division)
                 #divisionLink.text[-1] gets the division letter from link text. Used as keys for competitors item
-                competitorsItem[divisionLink.text[-1]] = divisionItem
-
+                div = 'div'+divisionLink.text[-1]
+                competitors[div] = divisionCompetitors
         regattaItem['competitors'] = competitorsItem
-
-
+        
         yield regattaItem
     
     def parse_full_scores(self, response):
@@ -55,24 +53,21 @@ class seasons(CrawlSpider):
         lastdivision = self.lastDivision(response)
         currentSchool = None
         for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
-            # print row.xpath('@class').extract()
-            # print row.xpath('@class').extract()[0]
             divClass = row.xpath('@class').extract()[0]
             if ('div' in divClass):
-                schoolScore = dict()
                 if (divClass == 'divA'): 
+                    schoolScore = dict()
                     currentSchool = row.xpath('td[3]/a/text()').extract()[0]
                     schoolScore['school'] = currentSchool
-                    schoolScore[ divClass ] = self.parse_division_score(row)## list of A division results
+                    adivresults=self.parse_division_score(row)
+                    schoolScore[ divClass ] = adivresults## list of A division results
                 else:
-                    schoolScore['school'] = currentSchool
                     schoolScore[ divClass ] = self.parse_division_score(row)
                 if (row.xpath('@class').extract()[0]==lastdivision ): 
                     fullScores[currentSchool] = schoolScore
-        print fullScores
         regatta['fullScores']=fullScores
         regatta['competitors']=dict()
-        return regatta
+        return fullScores
 
     def parse_division_score(self, row):
         results = []

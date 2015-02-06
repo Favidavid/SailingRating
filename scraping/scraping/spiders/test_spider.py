@@ -41,21 +41,18 @@ class TestSpider(scrapy.Spider):
         lastdivision = self.lastDivision(response)
         currentSchool = None
         for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
-            # print row.xpath('@class').extract()
-            # print row.xpath('@class').extract()[0]
             divClass = row.xpath('@class').extract()[0]
             if ('div' in divClass):
-                schoolScore = dict()
                 if (divClass == 'divA'): 
+                    schoolScore = dict()
                     currentSchool = row.xpath('td[3]/a/text()').extract()[0]
                     schoolScore['school'] = currentSchool
-                    schoolScore[ divClass ] = self.parse_division_score(row)## list of A division results
+                    adivresults=self.parse_division_score(row)
+                    schoolScore[ divClass ] = adivresults## list of A division results
                 else:
-                    schoolScore['school'] = currentSchool
                     schoolScore[ divClass ] = self.parse_division_score(row)
                 if (row.xpath('@class').extract()[0]==lastdivision ): 
                     fullScores[currentSchool] = schoolScore
-        print fullScores
         regatta['fullScores']=fullScores
         regatta['competitors']=dict()
         return regatta
