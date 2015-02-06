@@ -9,9 +9,10 @@ import scrapy
 
 
 class RegattaItem(scrapy.Item):
-	fullScores = dict()
-	competitors = dict()
+    name = scrapy.Field()
+    fullScores = scrapy.Field()
+    competitors = scrapy.Field()
 
 class DivisionItem(scrapy.Item):
-	skippers = dict()
-	crews = dict()
+    skippers = scrapy.Field()
+    crews = scrapy.Field()

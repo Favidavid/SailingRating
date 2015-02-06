@@ -33,61 +33,69 @@ class seasons(CrawlSpider):
         competitorsItem = CompetitorsItem()
         competitorsLinks = LinkExtractor(restrict_xpaths=('//*[@id="menu"]'), allow=('.*/[A-E]/') ).extractLinks(response)
         #singlehanded regatta
-        if (len(competitorsLinks) == 0) {
+        if (len(competitorsLinks) == 0):
             competitorsItem['A'] = parse_singlehanded_competitors(response)
-        }
+        
         #division regattas, could be single division
-        else {
+        else:
             for divisionLink in competitorsLinks:
                 divisionItem = scrapy.Request(divisionLink.url,callback=self.parse_division)
                 #divisionLink.text[-1] gets the division letter from link text. Used as keys for competitors item
                 competitorsItem[divisionLink.text[-1]] = divisionItem
-        }
+
         regattaItem['competitors'] = competitorsItem
 
 
         yield regattaItem
     
     def parse_full_scores(self, response):
-        fullScores = FullScoresItem()
-        lastDivision = lastDivision(response)
+        regatta = items.RegattaItem()
+        regatta['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
+        fullScores = dict()
+        lastdivision = self.lastDivision(response)
         currentSchool = None
-        schoolScores = dict()
-        for row in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr'):
-            if (row.xpath('@class').extract()[0].equals('divA') ): 
-                currentSchool = row.xpath('td[3]/a/text()').extract()[0]
+        for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
+            # print row.xpath('@class').extract()
+            # print row.xpath('@class').extract()[0]
+            divClass = row.xpath('@class').extract()[0]
+            if ('div' in divClass):
                 schoolScore = dict()
-                schoolScore['school'] = currentSchool
-                schoolScore['divA'] = parse_school_score(row)## list of A division results
-            else:
-                schoolScore = dict()
-                schoolScore['school'] = currentSchool
-                schoolScore[row.xpath('@class').extract()[0] ] = parse_school_score(row)
-            if (row.xpath('@class').extract()[0].equals(lastDivision) ): 
-                fullScores[currentSchool] = schoolScore 
-        fullScores = schoolScores
-        return fullScores
+                if (divClass == 'divA'): 
+                    currentSchool = row.xpath('td[3]/a/text()').extract()[0]
+                    schoolScore['school'] = currentSchool
+                    schoolScore[ divClass ] = self.parse_division_score(row)## list of A division results
+                else:
+                    schoolScore['school'] = currentSchool
+                    schoolScore[ divClass ] = self.parse_division_score(row)
+                if (row.xpath('@class').extract()[0]==lastdivision ): 
+                    fullScores[currentSchool] = schoolScore
+        print fullScores
+        regatta['fullScores']=fullScores
+        regatta['competitors']=dict()
+        return regatta
 
-    def parse_school_score(self, row):
+    def parse_division_score(self, row):
         results = []
-        for column in row.xpath('td[contains(@class,"right")]'):
+        columns = row.xpath('td[contains(@class,"right")]')
+        for column in columns:
             results.append(column.xpath('text()').extract()[0])
         return results
 
     def lastDivision(self, response):
         divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()[0]
         if (divisionsText == '2 Divisions' or divionsText == 'combined'):
-            return 'B'
+            return 'divB'
         elif (divisionsText == '3 Divisions'):
-            return 'C'
+            return 'divC'
         elif (divisionsText == 'Singlehanded' or divisionsText == '1 Division'):
-            return 'A'
+            return 'divA'
         elif (divisionsText == '4 Divisions'):
-            return 'D'
+            return 'divD'
         else:
-            return 'B'
+            return 'divB'
 
     def parse_division(self, response):
         return 'div'
 
-    def parse_singlehanded_division
+    def parse_singlehanded_division():
+        print ''
