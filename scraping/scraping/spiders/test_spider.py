@@ -7,8 +7,62 @@ class TestSpider(scrapy.Spider):
     name = "test"
     allowed_domains = ["scores.collegesailing.org/"]
     start_urls = [
-        "http://scores.collegesailing.org/f14/atlantic-coast-women/full-scores/",
+        "http://scores.collegesailing.org/f14/atlantic-coast-women/A/",
     ]
+    
+    def parse(self, response):
+        regatta = items.RegattaItem()
+        regatta['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
+        competitors = dict()
+        currentSchool = None
+        currentPosition = 'skippers' #skippers or crews
+        for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
+            divClass = row.xpath('@class').extract()[0]
+            print divClass
+            if ('topborder' in divClass): 
+                schoolCompetitors = dict()
+                currentSchool = row.xpath('//*[contains(@class,"schoolname")]/a/text()').extract()[0]
+                schoolCompetitors['school'] = currentSchool
+                currentPosition = 'skippers'
+                adivresults=self.parse_division_score(row)
+                schoolCompetitors[ divClass ] = adivresults## list of A division results
+            elif ('left' in divClass):
+            else:
+                schoolCompetitors[ divClass ] = self.parse_division_score(row)
+            if (row.xpath('@class').extract()[0]==lastdivision ): 
+                competitors[currentSchool] = schoolCompetitors
+        regatta['fullScores']=dict()
+        regatta['competitors']=competitors
+        return regatta
+
+    def parse_division_score(self, row):
+        results = []
+        columns = row.xpath('td[contains(@class,"right")]')
+        for column in columns:
+            results.append(column.xpath('text()').extract()[0])
+        return results
+
+    def lastDivision(self, response):
+        divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()[0]
+        if (divisionsText == '2 Divisions' or divionsText == 'combined'):
+            return 'divB'
+        elif (divisionsText == '3 Divisions'):
+            return 'divC'
+        elif (divisionsText == 'Singlehanded' or divisionsText == '1 Division'):
+            return 'divA'
+        elif (divisionsText == '4 Divisions'):
+            return 'divD'
+        else:
+            return 'divB'
+
+
+
+
+
+
+
+
+
     def parse_dude(self, response):
         log.msg(response, level=log.INFO)
         competitorsUrlLinkExtractor = LinkExtractor(restrict_xpaths=('//*[@id="menu"]'), allow=('.*/[A-E]/'))
@@ -34,45 +88,3 @@ class TestSpider(scrapy.Spider):
         #     item['name'] = sel.xpath('td/a/text()').extract()
         #     item['division'] = sel.xpath('td[4]/text()').extract()
         #     yield item
-    def parse(self, response):
-        regatta = items.RegattaItem()
-        regatta['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
-        fullScores = dict()
-        lastdivision = self.lastDivision(response)
-        currentSchool = None
-        for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
-            divClass = row.xpath('@class').extract()[0]
-            if ('div' in divClass):
-                if (divClass == 'divA'): 
-                    schoolScore = dict()
-                    currentSchool = row.xpath('td[3]/a/text()').extract()[0]
-                    schoolScore['school'] = currentSchool
-                    adivresults=self.parse_division_score(row)
-                    schoolScore[ divClass ] = adivresults## list of A division results
-                else:
-                    schoolScore[ divClass ] = self.parse_division_score(row)
-                if (row.xpath('@class').extract()[0]==lastdivision ): 
-                    fullScores[currentSchool] = schoolScore
-        regatta['fullScores']=fullScores
-        regatta['competitors']=dict()
-        return regatta
-
-    def parse_division_score(self, row):
-        results = []
-        columns = row.xpath('td[contains(@class,"right")]')
-        for column in columns:
-            results.append(column.xpath('text()').extract()[0])
-        return results
-
-    def lastDivision(self, response):
-        divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()[0]
-        if (divisionsText == '2 Divisions' or divionsText == 'combined'):
-            return 'divB'
-        elif (divisionsText == '3 Divisions'):
-            return 'divC'
-        elif (divisionsText == 'Singlehanded' or divisionsText == '1 Division'):
-            return 'divA'
-        elif (divisionsText == '4 Divisions'):
-            return 'divD'
-        else:
-            return 'divB'

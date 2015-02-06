@@ -43,7 +43,7 @@ class seasons(CrawlSpider):
                 div = 'div'+divisionLink.text[-1]
                 competitors[div] = divisionCompetitors
         regattaItem['competitors'] = competitorsItem
-        
+
         yield regattaItem
     
     def parse_full_scores(self, response):
@@ -59,8 +59,7 @@ class seasons(CrawlSpider):
                     schoolScore = dict()
                     currentSchool = row.xpath('td[3]/a/text()').extract()[0]
                     schoolScore['school'] = currentSchool
-                    adivresults=self.parse_division_score(row)
-                    schoolScore[ divClass ] = adivresults## list of A division results
+                    schoolScore[ divClass ] = self.parse_division_score(row)## list of A division results
                 else:
                     schoolScore[ divClass ] = self.parse_division_score(row)
                 if (row.xpath('@class').extract()[0]==lastdivision ): 
