@@ -15,21 +15,23 @@ class TestSpider(scrapy.Spider):
         regatta['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
         competitors = dict()
         currentSchool = None
-        currentPosition = 'skippers' #skippers or crews
         for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
-            divClass = row.xpath('@class').extract()[0]
-            print divClass
-            if ('topborder' in divClass): 
-                schoolCompetitors = dict()
-                currentSchool = row.xpath('//*[contains(@class,"schoolname")]/a/text()').extract()[0]
+            rowClass = row.xpath('@class').extract()[0]
+            if ('topborder' in rowClass): 
+                schoolCompetitors = dict({'skipper':dict(),'crew':dict()})
+                currentSchool = row.xpath('*[contains(@class,"schoolname")]/a/text()').extract()[0]
                 schoolCompetitors['school'] = currentSchool
-                currentPosition = 'skippers'
-                adivresults=self.parse_division_score(row)
-                schoolCompetitors[ divClass ] = adivresults## list of A division results
-            elif ('left' in divClass):
+            position = row.xpath('*[contains(@class,"sailor-name")]/@class').extract()[0][12:]
+            racesSailed = row.xpath('*[contains(@class,"races")]/text()').extract()
+            sailorName = row.xpath('*[contains(@class,"sailor-name")]/text()').extract()[0]
+            if (len(racesSailed) == 0):
+                schoolCompetitors[position][sailorName] = u''
             else:
-                schoolCompetitors[ divClass ] = self.parse_division_score(row)
-            if (row.xpath('@class').extract()[0]==lastdivision ): 
+                schoolCompetitors[position][sailorName] = racesSailed[0]
+            ## if last row of competitors (no following siblings)
+            if (len(row.xpath('following-sibling::tr[1]').extract() ) == 0):
+                competitors[currentSchool] = schoolCompetitors
+            elif ('topborder' in row.xpath('following-sibling::tr[1]/@class').extract()[0]): 
                 competitors[currentSchool] = schoolCompetitors
         regatta['fullScores']=dict()
         regatta['competitors']=competitors

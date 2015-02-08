@@ -89,7 +89,27 @@ class seasons(CrawlSpider):
             return 'divB'
 
     def parse_division(self, response):
-        return 'div'
+        competitors = dict()
+        currentSchool = None
+        for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
+            rowClass = row.xpath('@class').extract()[0]
+            if ('topborder' in rowClass): 
+                schoolCompetitors = dict({'skipper':dict(),'crew':dict()})
+                currentSchool = row.xpath('*[contains(@class,"schoolname")]/a/text()').extract()[0]
+                schoolCompetitors['school'] = currentSchool
+            position = row.xpath('*[contains(@class,"sailor-name")]/@class').extract()[0][12:]
+            racesSailed = row.xpath('*[contains(@class,"races")]/text()').extract()
+            sailorName = row.xpath('*[contains(@class,"sailor-name")]/text()').extract()[0]
+            if (len(racesSailed) == 0):
+                schoolCompetitors[position][sailorName] = u''
+            else:
+                schoolCompetitors[position][sailorName] = racesSailed[0]
+            ## if last row of competitors (no following siblings)
+            if (len(row.xpath('following-sibling::tr[1]').extract() ) == 0):
+                competitors[currentSchool] = schoolCompetitors
+            elif ('topborder' in row.xpath('following-sibling::tr[1]/@class').extract()[0]): 
+                competitors[currentSchool] = schoolCompetitors
+        return competitors
 
     def parse_singlehanded_division():
         print ''
