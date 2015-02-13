@@ -7,34 +7,29 @@ class TestSpider(scrapy.Spider):
     name = "test"
     allowed_domains = ["scores.collegesailing.org/"]
     start_urls = [
-        "http://scores.collegesailing.org/f14/atlantic-coast-women/A/",
+        "http://scores.collegesailing.org/f14/saisa-fall-womens-singlehanded/full-scores/",
     ]
     
     def parse(self, response):
         regatta = items.RegattaItem()
         regatta['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
-        competitors = dict()
+        fullScores = dict()
+        lastdivision = self.lastDivision(response)
         currentSchool = None
         for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
-            rowClass = row.xpath('@class').extract()[0]
-            if ('topborder' in rowClass): 
-                schoolCompetitors = dict({'skipper':dict(),'crew':dict()})
-                currentSchool = row.xpath('*[contains(@class,"schoolname")]/a/text()').extract()[0]
-                schoolCompetitors['school'] = currentSchool
-            position = row.xpath('*[contains(@class,"sailor-name")]/@class').extract()[0][12:]
-            racesSailed = row.xpath('*[contains(@class,"races")]/text()').extract()
-            sailorName = row.xpath('*[contains(@class,"sailor-name")]/text()').extract()[0]
-            if (len(racesSailed) == 0):
-                schoolCompetitors[position][sailorName] = u''
-            else:
-                schoolCompetitors[position][sailorName] = racesSailed[0]
-            ## if last row of competitors (no following siblings)
-            if (len(row.xpath('following-sibling::tr[1]').extract() ) == 0):
-                competitors[currentSchool] = schoolCompetitors
-            elif ('topborder' in row.xpath('following-sibling::tr[1]/@class').extract()[0]): 
-                competitors[currentSchool] = schoolCompetitors
-        regatta['fullScores']=dict()
-        regatta['competitors']=competitors
+            print 'row'
+            divClass = row.xpath('@class').extract()[0]
+            print divClass
+            if (divClass == 'divA'): 
+                print 'divA'
+                schoolScore = dict()
+                currentSailor = row.xpath('td[3]/text()').extract()[0]
+                currentSchool = row.xpath('td[3]/a/text()').extract()[0]
+                schoolScore['school'] = currentSchool
+                schoolScore[ 'scores' ] = self.parse_division_score(row)## list of A division results
+                fullScores[currentSailor] = schoolScore
+        regatta['fullScores']=fullScores
+        regatta['competitors']=dict()
         return regatta
 
     def parse_division_score(self, row):
@@ -46,7 +41,7 @@ class TestSpider(scrapy.Spider):
 
     def lastDivision(self, response):
         divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()[0]
-        if (divisionsText == '2 Divisions' or divionsText == 'combined'):
+        if (divisionsText == '2 Divisions' or divisionsText == 'combined'):
             return 'divB'
         elif (divisionsText == '3 Divisions'):
             return 'divC'
