@@ -2,34 +2,27 @@ import scrapy
 from scrapy import log
 from scrapy.contrib.linkextractors import LinkExtractor
 import scraping.items as items
+from scrapy.http import HtmlResponse
 
 class TestSpider(scrapy.Spider):
     name = "test"
     allowed_domains = ["scores.collegesailing.org/"]
     start_urls = [
-        "http://scores.collegesailing.org/f14/saisa-fall-womens-singlehanded/full-scores/",
+        "http://scores.collegesailing.org/seasons/",
     ]
     
     def parse(self, response):
         regatta = items.RegattaItem()
-        regatta['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
-        fullScores = dict()
-        lastdivision = self.lastDivision(response)
-        currentSchool = None
-        for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
-            print 'row'
-            divClass = row.xpath('@class').extract()[0]
-            print divClass
-            if (divClass == 'divA'): 
-                print 'divA'
-                schoolScore = dict()
-                currentSailor = row.xpath('td[3]/text()').extract()[0]
-                currentSchool = row.xpath('td[3]/a/text()').extract()[0]
-                schoolScore['school'] = currentSchool
-                schoolScore[ 'scores' ] = self.parse_division_score(row)## list of A division results
-                fullScores[currentSailor] = schoolScore
-        regatta['fullScores']=fullScores
+        for season in response.xpath('//*[@id="page-info"]/li'):
+            href = season.xpath('span[2]/a/@href').extract()[0]
+            seasonUrl = response.url + href[1:]
+            print seasonUrl
+            seasonResponse = scrapy.Request(seasonUrl,callback=self.parse_season)
+            seasonName = season.xpath('span[1]/text()').extract()[0]
+            print seasonName
+        print '---------------------------------------------------------------------------------'
         regatta['competitors']=dict()
+        regatta['fullScores']=dict()
         return regatta
 
     def parse_division_score(self, row):
@@ -54,7 +47,9 @@ class TestSpider(scrapy.Spider):
 
 
 
-
+    def parse_season(self, response):
+        season = dict()
+        return season
 
 
 

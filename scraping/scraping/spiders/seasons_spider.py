@@ -22,15 +22,21 @@ class seasons(CrawlSpider):
 
     def parse(self, resposne):
         seasons = dict()
-        competitorsLinks = LinkExtractor(restrict_xpaths=('//*[@id="page-info"]/li/span[2]/a') ).extractLinks(response)
-        for season in response.xpath('//*[@id="page-info"]/li/span[2]/a'):
-            seasonResponse = scrapy.Request(divisionLink.url,callback=self.parse_competitors_division)
-            seasonName = season.xpath('text()').extract()[0]
-            seasons[seasonName] = parse_season(seasonResponse)
+        for season in response.xpath('//*[@id="page-info"]/li'):
+            href = season.xpath('span[2]/a/@href').extract()[0]
+            seasonUrl = response.url + href[1:]
+            seasonName = season.xpath('span[1]/text()').extract()[0]
+            seasons[seasonName] = scrapy.Request(seasonUrl,callback=self.parse_season)
         return seasons
 
     def parse_season(self, response):
         season = dict()
+        currentWeek = None
+        for row in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr'):
+
+            #######################################################################################3WORK HERE
+            weekName = season.xpath('span[1]/text()').extract()[0]
+            season[weekName] = parse_week(week)
         return season
 
     def parse_week(self, response):
