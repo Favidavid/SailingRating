@@ -4,39 +4,52 @@ from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy import log #todo find out this import syntax
 import scraping.items
 
-class seasons(CrawlSpider):
+class seasons(scrapy.Spider):
     name = 'seasons'
     allowed_domains = ['http://scores.collegesailing.org']
     start_urls = ['http://scores.collegesailing.org/seasons/']
+    allowedTypes = ['2 Divisions','3 Divisions','4 Divisions','1 Divisions','Singlehanded']
 
+# ##todo: group regattas into weeks, and then into seasons, to keep things chronological. probably getting rid of crawl spider
+# ##because we can define the rules and have more freedom with extracted links, like in parse_regatta with competitorsLinksExtractor
+#     rules = (
+#         # and follow links from them (since no callback means follow=True by default).
+#         Rule(LinkExtractor(restrict_xpaths=('//*[@id="page-info"]/li/span/a/@href') ) ),
 
-##todo: group regattas into weeks, and then into seasons, to keep things chronological. probably getting rid of crawl spider
-##because we can define the rules and have more freedom with extracted links, like in parse_regatta with competitorsLinksExtractor
-    rules = (
-        # and follow links from them (since no callback means follow=True by default).
-        Rule(LinkExtractor(restrict_xpaths=('//*[@id="page-info"]/li/span/a/@href') ) ),
+#         # Extract links within xpath and parse them with the spider's method parse_item
+#         Rule(LinkExtractor(restrict_xpaths=('//*[@id="page-content"]/div[2]/table/tbody') ), callback='parse_regatta'),
+#     )
 
-        # Extract links within xpath and parse them with the spider's method parse_item
-        Rule(LinkExtractor(restrict_xpaths=('//*[@id="page-content"]/div[2]/table/tbody') ), callback='parse_regatta'),
-    )
-
-    def parse(self, resposne):
+    def parse(self, response):
         seasons = dict()
         for season in response.xpath('//*[@id="page-info"]/li'):
             href = season.xpath('span[2]/a/@href').extract()[0]
             seasonUrl = response.url + href[1:]
             seasonName = season.xpath('span[1]/text()').extract()[0]
-            seasons[seasonName] = scrapy.Request(seasonUrl,callback=self.parse_season)
-        return seasons
+            seasons[seasonName] = scrapy.Request(seasonUrl,callback=self.parse_season)['season'] #need to return an item from request....
+        rootItem = RootItem()
+        rootItem['seasons'] = seasons
+        return rootItem
 
     def parse_season(self, response):
         season = dict()
         currentWeek = None
         for row in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr'):
-
-            weekName = season.xpath('span[1]/text()').extract()[0]
-            season[weekName] = parse_week(week)
-        return season
+            if (len(row.xpath('@class').extract()) == 0):
+                weekName = row.xpath('th/text()').extract()[0]
+                season[weekName] = dict()
+                print weekName
+            else:
+                regattaType = row.xpath('td[4]/text()').extract()
+                if (len(regattaType) != 0):
+                    if (regattaType[0] in allowedTypes):
+                        regattaName = row.xpath('td[1]/a/text()').extract()[0]
+                        href = row.xpath('td[1]/a/@href').extract()[0]
+                        regattaUrl = response.url + href
+                        season[weekName][regattaName] = scrapy.Request(regattaUrl,callback=self.parse_regatta)
+        seasonItem = SeasonItem()
+        seasonItem['season'] = season
+        return seasonItem
 
     def parse_week(self, response):
         week = dict()
@@ -46,11 +59,11 @@ class seasons(CrawlSpider):
 
     def parse_regatta(self, response):
         regattaItem = RegattaItem()
-        regatta['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
-        print regatta['name']
+        regattaItem['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
+        print regattaItem['name']
         #populate fullScoresItem
         fullScoresUrl = response.xpath('//*[@id="menu"]/li[4]/a/text()').extract()[0]
-        regattaItem['fullScores'] = scrapy.Request(fullScoresUrl,callback=self.parse_full_scores)
+        regattaItem['fullScores'] = scrapy.Request(fullScoresUrl,callback=self.parse_full_scores) ############---------------herehehrhehreh
 
 
         #populate competitorsItem
@@ -98,7 +111,7 @@ class seasons(CrawlSpider):
 
     def lastDivision(self, response):
         divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()[0]
-        if (divisionsText == '2 Divisions' or divisionsText == 'combined'):
+        if (divisionsText == '2 Divisions'):
             return 'divB'
         elif (divisionsText == '3 Divisions'):
             return 'divC'

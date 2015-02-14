@@ -7,6 +7,11 @@
 
 import scrapy
 
+class RootItem(scrapy.Item):
+	seasons = scrapy.Field()
+
+class SeasonItem(scrapy.Item):
+	season = scrapy.Field()
 
 class RegattaItem(scrapy.Item):
     name = scrapy.Field()
