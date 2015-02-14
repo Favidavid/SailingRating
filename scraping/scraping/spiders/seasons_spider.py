@@ -34,7 +34,6 @@ class seasons(CrawlSpider):
         currentWeek = None
         for row in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr'):
 
-            #######################################################################################3WORK HERE
             weekName = season.xpath('span[1]/text()').extract()[0]
             season[weekName] = parse_week(week)
         return season

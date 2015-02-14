@@ -8,18 +8,18 @@ class TestSpider(scrapy.Spider):
     name = "test"
     allowed_domains = ["scores.collegesailing.org/"]
     start_urls = [
-        "http://scores.collegesailing.org/seasons/",
+        "http://scores.collegesailing.org/f14/",
     ]
     
     def parse(self, response):
         regatta = items.RegattaItem()
-        for season in response.xpath('//*[@id="page-info"]/li'):
-            href = season.xpath('span[2]/a/@href').extract()[0]
-            seasonUrl = response.url + href[1:]
-            print seasonUrl
-            seasonResponse = scrapy.Request(seasonUrl,callback=self.parse_season)
-            seasonName = season.xpath('span[1]/text()').extract()[0]
-            print seasonName
+        currentWeek = None
+        for row in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr'):
+            if (len(row.xpath('@class').extract()) == 0):
+                ##weekName = row.xpath('th/text()').extract()[0]
+
+            else:
+                ##season[weekName] = ''#parse_week(week)
         print '---------------------------------------------------------------------------------'
         regatta['competitors']=dict()
         regatta['fullScores']=dict()
