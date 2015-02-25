@@ -16,10 +16,11 @@ class TestSpider(scrapy.Spider):
         regattaItem['name']=response.xpath('//*[@id="content-header"]/h1/span[2]/text()').extract()[0]
         print regattaItem['name']
         #populate fullScoresItem
-        href = response.xpath('//*[@id="menu"]/li[4]/a/@href').extract()[0]
-        fullScoresUrl = response.url + href[1:]
-        print fullScoresUrl
-        regattaItem['fullScores'] = self.parse_full_scores(scrapy.Request(fullScoresUrl).meta ) ############---------------herehehrhehreh
+        fullScoresLink = LinkExtractor(restrict_xpaths=('//*[@id="menu"]'), allow=('.*/full-scores/') ).extract_links(response)[0]
+
+        fullScoresResponse = scrapy.http.HtmlResponse(url=fullScoresLink.url, body=body)
+        print fullScoresResponse
+        regattaItem['fullScores'] = self.parse_full_scores(fullScoresResponse)
 
 
         #populate competitorsItem
@@ -66,7 +67,8 @@ class TestSpider(scrapy.Spider):
         return results
 
     def lastDivision(self, response):
-        divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()[0]
+        divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()
+        print divisionsText
         if (divisionsText == '2 Divisions'):
             return 'divB'
         elif (divisionsText == '3 Divisions'):
