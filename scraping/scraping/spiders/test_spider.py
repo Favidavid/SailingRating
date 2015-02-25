@@ -17,8 +17,8 @@ class TestSpider(scrapy.Spider):
         print regattaItem['name']
         #populate fullScoresItem
         fullScoresLink = LinkExtractor(restrict_xpaths=('//*[@id="menu"]'), allow=('.*/full-scores/') ).extract_links(response)[0]
-
-        fullScoresResponse = scrapy.http.HtmlResponse(url=fullScoresLink.url, body=body)
+        fullScoresRequest = scrapy.Request(fullScoresLink.url)
+        fullScoresResponse = scrapy.http.HtmlResponse(url=fullScoresLink.url, body=fullScoresRequest.body)
         print fullScoresResponse
         regattaItem['fullScores'] = self.parse_full_scores(fullScoresResponse)
 
@@ -37,7 +37,7 @@ class TestSpider(scrapy.Spider):
                 #divisionLink.text[-1] gets the division letter from link text. Used as keys for competitors item
                 div = 'div'+divisionLink.text[-1]
                 competitors[div] = divisionCompetitors
-        regattaItem['competitors'] = competitorsItem
+        regattaItem['competitors'] = competitors
 
         yield regattaItem
 
