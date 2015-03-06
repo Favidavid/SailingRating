@@ -3,6 +3,7 @@ from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 from scrapy import log #todo find out this import syntax
 import scraping.items as items
+import urllib2
 
 class TestSpider(scrapy.Spider):
     name = "test"
@@ -17,10 +18,13 @@ class TestSpider(scrapy.Spider):
         print regattaItem['name']
         #populate fullScoresItem
         fullScoresLink = LinkExtractor(restrict_xpaths=('//*[@id="menu"]'), allow=('.*/full-scores/') ).extract_links(response)[0]
-        fullScoresRequest = scrapy.Request(fullScoresLink.url)
-        fullScoresResponse = scrapy.http.HtmlResponse(url=fullScoresLink.url, body=fullScoresRequest.body)
+        # fullScoresRequest = scrapy.Request(fullScoresLink.url,self.parse_full_scores)
+        # print fullScoresRequest.body
+        html = urllib2.urlopen(fullScoresLink.url).read()
+        # print html
+        fullScoresResponse = scrapy.http.HtmlResponse(url=fullScoresLink.url, body=html)
         print fullScoresResponse
-        regattaItem['fullScores'] = self.parse_full_scores(fullScoresResponse)
+        regattaItem['fullScores'] = []
 
 
         #populate competitorsItem
