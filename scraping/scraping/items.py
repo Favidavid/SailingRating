@@ -14,10 +14,10 @@ class SeasonItem(scrapy.Item):
 	season = scrapy.Field()
 
 class RegattaItem(scrapy.Item):
-    name = scrapy.Field()
-    fullScores = scrapy.Field()
-    competitors = scrapy.Field()
+  name = scrapy.Field()
+  fullScores = scrapy.Field()
+  competitors = scrapy.Field()
 
 class DivisionItem(scrapy.Item):
-    skippers = scrapy.Field()
-    crews = scrapy.Field()
+  skippers = scrapy.Field()
+  crews = scrapy.Field()
