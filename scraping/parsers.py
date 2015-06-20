@@ -35,42 +35,77 @@ def parse_regatta(response):
   print regatta['name']
   fullScoresLink = LinkExtractor(restrict_xpaths = ('//*[@id="menu"]'), allow = ('.*/full-scores/') ).extract_links(response)[0]
   fullScoresResponse = getResponse(fullScoresLink.url)
-  regatta['fullScores'] = parse_full_scores(fullScoresResponse)
 
-  #populate competitorsItem
+  #mapping of places to school
+  places = dict()
+  for row in response.xpath('//*[@id="page-content"]/div[3]/table/tbody/tr'):
+    school = row.xpath('td[4]/a/span/text()').extract()[0]
+    place = row.xpath('td[2]/text()').extract()[0]
+    places[school] = place
+  regatta['places'] = places
+
+  #populate fullScores and competitors
   competitorsLinks = LinkExtractor(restrict_xpaths = ('//*[@id="menu"]'), allow = ('.*/[A-E]/') ).extract_links(response)
-  competitors = dict()
+  
   #singlehanded regatta
   if (len(competitorsLinks) == 0):
-    regattaItem['competitors'] = parse_singlehanded_competitors(response)
-
+    regatta['fullScores'] = parse_singlehanded_results(fullScoresResponse)
+    competitors = dict()
+    competitors['divA'] = parse_singlehanded_competitors_division(response)
+    regatta['competitors'] = competitors
   #division regattas, could be single division
   else:
+    regatta['fullScores'] = parse_full_scores(fullScoresResponse)
+    competitors = dict()
     for divisionLink in competitorsLinks:
       divisionCompetitorsResponse = getResponse(divisionLink.url)
       divisionCompetitors = parse_competitors_division(divisionCompetitorsResponse)
       #divisionLink.text[-1] gets the division letter from link text. Used as keys for competitors item
-      div = 'div'+divisionLink.text[-1]
+      div = 'div' + divisionLink.text[-1]
       competitors[div] = divisionCompetitors
-  regatta['competitors'] = competitors
-  print(regatta['competitors'])
+    regatta['competitors'] = competitors
   return regatta
 
 def parse_full_scores(response):
   fullScores = dict()
   lastdivision = lastDivision(response)
   currentSchool = None
+  currentPlace = '1'
+  numberOfRaces = response.xpath('//*[contains(@class,"results coordinate")]/thead/tr/th[last()-2]/text()').extract()[0]
+  fullScores['numberOfRaces'] = numberOfRaces
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     divClass = row.xpath('@class').extract()[0]
     if ('div' in divClass):
       if (divClass == 'divA'):
         schoolScore = dict()
         currentSchool = row.xpath('td[3]/a/text()').extract()[0]
+        currentPlace = row.xpath('td[2]/text()').extract()[0]
+        schoolScore[ 'name' ] = currentSchool
         schoolScore[ divClass ] = parse_division_score(row)## list of A division results
       else:
         schoolScore[ divClass ] = parse_division_score(row)
-      if (row.xpath('@class').extract()[0]==lastdivision ):
-        fullScores[currentSchool] = schoolScore
+      if (row.xpath('@class').extract()[0] == lastdivision ):
+        fullScores[currentPlace] = schoolScore
+  return fullScores
+
+def parse_singlehanded_results(response):
+  fullScores = dict()
+  fullScores['divA'] = dict()
+  lastdivision = lastDivision(response)
+  currentSchool = None
+  currentPlace = '1'
+  numberOfRaces = response.xpath('//*[contains(@class,"results coordinate")]/thead/tr/th[last()-2]/text()').extract()[0]
+  fullScores['numberOfRaces'] = numberOfRaces
+  for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
+    divClass = row.xpath('@class').extract()[0]
+    print divClass
+    if (divClass == 'divA'):
+      schoolScore = dict()
+      currentSchool = row.xpath('td[3]/a/text()').extract()[0]
+      currentPlace = row.xpath('td[2]/text()').extract()[0]
+      schoolScore['name'] = currentSchool
+      schoolScore[ 'divA' ] = parse_division_score(row)## list of A division results
+      fullScores[currentPlace] = schoolScore
   return fullScores
 
 def parse_division_score(row):
@@ -96,10 +131,11 @@ def lastDivision(response):
 def parse_competitors_division(response):
   competitors = dict()
   currentSchool = None
+  currentPlace = '1'
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     rowClass = row.xpath('@class').extract()[0]
     if ('topborder' in rowClass): 
-      schoolCompetitors = dict({'skippers':dict(),'crews':dict()})
+      schoolCompetitors = dict({'skipper':dict(),'crew':dict()})
       currentSchool = row.xpath('*[contains(@class,"schoolname")]/a/text()').extract()[0]
     positionXpath = row.xpath("*[contains(@class,'sailor-name')]/@class").extract()
     if (len(positionXpath) == 0):
@@ -119,32 +155,17 @@ def parse_competitors_division(response):
       competitors[currentSchool] = schoolCompetitors
   return competitors
 
-def parse_singlehanded_division():
+def parse_singlehanded_competitors_division():
   competitors = dict()
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     sailorName = row.xpath('*[contains(@class,"teamname")]/text()').extract()[0]
     currentSchool = row.xpath('*[contains(@class,"schoolname")]/a/span/text()').extract()[0]
-    competitor = dict()
-    competitor['name'] = sailorName
-    competitor['school'] = currentSchool
-    competitors[sailorName] = competitor
+    competitors[currentSchool] = dict()
+    competitors[currentSchool]['skipper'] = dict()
+    competitors[currentSchool]['skipper'][sailorName] = u''
   return competitors
 
-def parse_singlehanded_results():
-  fullScores = dict()
-  lastdivision = lastDivision(response)
-  currentSchool = None
-  for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
-    divClass = row.xpath('@class').extract()[0]
-    print divClass
-    if (divClass == 'divA'):
-      schoolScore = dict()
-      currentSailor = row.xpath('td[3]/text()').extract()[0]
-      currentSchool = row.xpath('td[3]/a/text()').extract()[0]
-      schoolScore['school'] = currentSchool
-      schoolScore[ 'scores' ] = parse_division_score(row)## list of A division results
-      fullScores[currentSailor] = schoolScore
-  return fullScores
+
 
 def getResponse(url):
   lxmlResponse = lxml.html.parse(url)
