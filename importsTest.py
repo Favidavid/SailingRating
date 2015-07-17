@@ -1,0 +1,1 @@
+from parsers import getResponse, parse_full_scores, parse_singlehanded_results, parse_competitors_division, parse_singlehanded_competitors_division

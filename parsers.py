@@ -30,12 +30,23 @@ def parse_week(response):
 
 def parse_regatta(response):
   xpathRegattaName = '//*[@id="content-header"]/h1/span[2]/text()'
+  xpathRegattaHost = '//*[@id="page-info"]/li[1]/span[2]/span/text()'
+  xpathRegattaTier = '//*[@id="page-info"]/li[3]/span[2]/span/text()'
+  xpathRegattaBoat = '//*[@id="page-info"]/li[4]/span[2]/text()'
+  xpathRegattaScoring = '//*[@id="page-info"]/li[5]/span[2]/text()'
+  xpathRegattaSummary = '//*[@id="summary"]/div[2]/p[1]/text()'
   xpathFullScoresUrl = '//*[@id="menu"]'
-  xpathReportSchoolRow = '//*[@id="page-content"]/div[3]/table/tbody/tr'
+  xpathReportSchoolRow = '//*[@id="page-content"]/div[3]/table[1]/tbody/tr'
   xpathReportSchoolName = 'td[4]/a/span/text()'
   xpathReportSchoolFinishPlace = 'td[2]/text()'
   regatta = dict()
   regatta['name'] = response.xpath( xpathRegattaName ).extract()[0]
+  regatta['host'] = response.xpath( xpathRegattaHost ).extract()[0]
+  regatta['tier'] = response.xpath( xpathRegattaTier ).extract()[0]
+  regatta['boat'] = response.xpath( xpathRegattaBoat ).extract()[0]
+  regatta['scoring'] = response.xpath( xpathRegattaScoring ).extract()[0]
+  regatta['summary'] = response.xpath( xpathRegattaSummary ).extract()[0]
+
   fullScoresLink = LinkExtractor(restrict_xpaths = ( xpathFullScoresUrl ), allow = ('.*/full-scores/') ).extract_links(response)[0]
   fullScoresResponse = getResponse(fullScoresLink.url)
 
@@ -147,7 +158,7 @@ def parse_competitors_division(response):
       if (len(racesSailed) == 0):
         schoolCompetitors[position][sailorName] = u''
       else:
-        schoolCompetitors[position][sailorName] = racesSailed
+        schoolCompetitors[position][sailorName] = racesSailed[0]
     ## if last row of competitors (no following siblings)
     if (len(row.xpath('following-sibling::tr[1]').extract() ) == 0):
       competitorsDivision[currentSchool] = schoolCompetitors
