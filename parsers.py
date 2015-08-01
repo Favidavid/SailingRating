@@ -34,7 +34,7 @@ def parse_regatta(response):
   xpathRegattaTier = '//*[@id="page-info"]/li[3]/span[2]/span/text()'
   xpathRegattaBoat = '//*[@id="page-info"]/li[4]/span[2]/text()'
   xpathRegattaScoring = '//*[@id="page-info"]/li[5]/span[2]/text()'
-  xpathRegattaSummary = '//*[@id="summary"]/div[2]/p[1]/text()'
+  xpathRegattaSummary = '//*[@id="summary"]/descendant::*/text()'
   xpathFullScoresUrl = '//*[@id="menu"]'
   xpathReportSchoolRow = '//*[@id="page-content"]/div[3]/table[1]/tbody/tr'
   xpathReportSchoolName = 'td[4]/a/span/text()'
@@ -171,7 +171,7 @@ def parse_singlehanded_competitors_division(response):
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     sailorName = row.xpath('*[contains(@class,"teamname")]/text()').extract()[0]
     currentSchool = row.xpath('*[contains(@class,"schoolname")]/a/span/text()').extract()[0]
-    competitorsDivision[currentSchool] = dict({'skipper':dict()})
+    competitorsDivision[currentSchool] = dict({'skipper':dict(),'crew':dict()})
     competitorsDivision[currentSchool]['skipper'][sailorName] = u''
   return competitorsDivision
 

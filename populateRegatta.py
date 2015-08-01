@@ -3,10 +3,10 @@ from parsers import getResponse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
-from dbinit import School, Sailor, RatingStamp, Season, Regatta, RaceResult, Base
+from dbinit import School, Sailor, RatingStamp, Season, Regatta, RaceResult, Base, Race
 
-def testRegatta():
-  return parsers.parse_regatta(getResponse("http://scores.collegesailing.org/f14/navy-fall-women/full-scores/"))
+def testresponse():
+  return getResponse("http://www.google.com")
 
 def populateRegatta(regattaUrl,dbUrl):
   engine = create_engine(dbUrl, echo=True)
@@ -18,7 +18,10 @@ def populateRegatta(regattaUrl,dbUrl):
   scores = regatta['fullScores']
   places = regatta['places']
   numberOfRaces = scores['numberOfRaces']
-
+  summary = ''
+  for text in regatta['summary']:
+    addstring = ' '+text
+    summary+=addstring
   session = Session()
   def racesSailedParser(races):
     """Return list of integers representing the races sailed by a sailor"""
@@ -28,7 +31,10 @@ def populateRegatta(regattaUrl,dbUrl):
       racesList = list()
       for ran in races.split(','):
         beginEnd = ran.split('-')
-        racesList += range( int(beginEnd[0])-1, int(beginEnd[1]) )
+        if len(beginEnd) == 1:
+          racesList += [int(beginEnd[0])-1]
+        else:
+          racesList += range( int(beginEnd[0])-1, int(beginEnd[1]) )
       return racesList
 
   def getSailorOrCreate(nameAndYear,school):
@@ -62,40 +68,54 @@ def populateRegatta(regattaUrl,dbUrl):
   def newSchool(schoolName):
     return School(name=schoolName)
 
-  def createRaceResult(sailor,raceNumber,finishPlace,division,sailingPosition):
-    raceResult = RaceResult(sailor=sailor,racenumber=raceNumber,finishplace=finishPlace,
-      division=division,sailingposition=sailingPosition,race=raceObjects[raceNumber])
+  def createRaceResult(skipper,raceNumber,finishPlace,division):
+    raceResult = RaceResult(skippersailor=skipper,racenumber=raceNumber,finishplace=finishPlace,
+      division=division,race=raceObjects[raceNumber])
+    return raceResult
 
   regattaObject = Regatta(name=regatta['name'],url=regattaUrl,host=regatta['host'],tier=regatta['tier'],
     boat=regatta['boat'],scoring=regatta['scoring'],summary=regatta['summary'])
-  racesObjects = []
   sailorObjects = []
   schoolObjects = []
-  for i in range(numberOfRaces):
-    newRace = Race(racenumber=i,regatta=regattaObject)
-    raceObjects.append(newRace)
-    session.add(newRace)
 
   for div in divisions:
+    raceObjects = []
+    for i in range(int(numberOfRaces)):
+      num = i
+      newRace = Race(racenumber=num,regatta=regattaObject,division=div)
+      raceObjects.append(newRace)
+      session.add(newRace)
     for school in divisions[div]:
       schoolObject = getSchoolOrCreate(school)
       if schoolObject not in schoolObjects:
         schoolObjects.append(schoolObject)
       schoolFinishPlace = places[school]
-      for sailingPosition in divisions[div][school]:           #each position in this division (skippers or crews)
-        for sailor in divisions[div][school][sailingPosition]: #each sailor that sailed in this schools division position (eg A division crews)
-          sailorObject = getSailorOrCreate(sailor,schoolObject,regattaObject)
-          if sailorObject not in sailorObjects:
-            sailorObjects.append(sailorObject)
-          racesSailed = racesSailedParser(divisions[div][school][sailingPosition][sailor])
-          for race in racesSailed:
-            createRaceResult(sailorObject,race,scores[schoolFinishPlace][div][race],div,sailingPosition)
-            raceObjects[race].sailors.append(sailorObject)
-  regattaObject.sailors.append(sailorObjects)
-  regattaObject.schools.append(schoolObjects)
+      raceResultObjects = {}
+      # for sailingPosition in divisions[div][school]:           #each position in this division (skippers or crews)
+      for sailor in divisions[div][school]['skipper']: #each sailor that sailed in this schools division position (eg A division crews)
+        sailorObject = getSailorOrCreate(sailor,schoolObject)
+        if sailorObject not in sailorObjects:
+          sailorObjects.append(sailorObject)
+        racesSailed = racesSailedParser(divisions[div][school]['skipper'][sailor])
+        for race in racesSailed:
+          raceResultObject = createRaceResult(sailorObject,race,scores[schoolFinishPlace][div][race],div)
+          raceResultObjects[race] = raceResultObject
+          raceObjects[race].sailors.append(sailorObject)
+      for sailor in divisions[div][school]['crew']:
+        sailorObject = getSailorOrCreate(sailor,schoolObject)
+        if sailorObject not in sailorObjects:
+          sailorObjects.append(sailorObject)
+        racesSailed = racesSailedParser(divisions[div][school]['crew'][sailor])
+        for race in racesSailed:
+          raceResultObjects[race].crewsailors = sailorObject
+          raceObjects[race].sailors.append(sailorObject)
+  for sailorObject in sailorObjects:
+    regattaObject.sailors.append(sailorObject)
+  for schoolObject in schoolObjects:
+    regattaObject.schools.append(schoolObject)
   session.add(regattaObject)
   session.commit()
   return regatta
 
-populateRegatta('http://scores.collegesailing.org/f14/icsa-singlehanded-champs-full/','mysql+pymysql://root:password@localhost/test4')
+populateRegatta("http://scores.collegesailing.org/f14/atlantic-coast-tournament/",'mysql+pymysql://root:password@localhost/test6')
   
