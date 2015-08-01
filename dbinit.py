@@ -83,7 +83,7 @@ class Race(Base):
   __tablename__ = 'races'
   id = Column(Integer, primary_key=True)
   regatta_id = Column(Integer, ForeignKey('regattas.id'))
-  raceresults = relationship("RaceResult", backref="race", order_by="RaceResult.finishplace")
+  raceresults = relationship("RaceResult", backref="race", order_by="RaceResult.finishvalue")
   sailors = relationship('Sailor', secondary=sailors_races, backref='races')
   racenumber = Column(Integer)
   division = Column(String(10))
@@ -100,7 +100,8 @@ class RaceResult(Base):
   skippersailor = relationship("Sailor", foreign_keys=skipper_sailor_id, backref="skipperraceresults")
   crewsailor = relationship("Sailor", foreign_keys=crew_sailor_id, backref="crewraceresults")
   racenumber = Column(Integer)
-  finishplace = Column(String(10))
+  finish = Column(String(50))
+  finishvalue = Column(Integer)
   division = Column(String(20))
 
 Base.metadata.create_all(engine)

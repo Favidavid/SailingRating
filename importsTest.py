@@ -9,7 +9,9 @@ Base.metadata.bind = engine
 session = Session()
 
 regatta = session.query(Regatta)[0]
+for race in regatta.races:
 
+  for raceresult in race.raceresults:
 # test_school = School(name='testname2')
 
 # session.add(test_school)

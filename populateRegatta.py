@@ -18,6 +18,7 @@ def populateRegatta(regattaUrl,dbUrl):
   scores = regatta['fullScores']
   places = regatta['places']
   numberOfRaces = scores['numberOfRaces']
+  numberOfSchools = len(divisions['divA'])
   summary = ''
   for text in regatta['summary']:
     addstring = ' '+text
@@ -68,8 +69,17 @@ def populateRegatta(regattaUrl,dbUrl):
   def newSchool(schoolName):
     return School(name=schoolName)
 
+  def finishValue(finishString):
+      if ':letters:' in finishString:
+        if ('BKD' in finishString) or ('RDG' in finishString):
+          return int(finishString.split(':letters:')[1].split(':')[0][1:])
+        else:
+          return numberOfSchools+1
+      else:
+        return int(finishString)
+
   def createRaceResult(skipper,raceNumber,finishPlace,division):
-    raceResult = RaceResult(skippersailor=skipper,racenumber=raceNumber,finishplace=finishPlace,
+    raceResult = RaceResult(skippersailor=skipper,racenumber=raceNumber,finish=finishPlace,finishvalue=finishValue(finishPlace)
       division=division,race=raceObjects[raceNumber])
     return raceResult
 
@@ -91,8 +101,7 @@ def populateRegatta(regattaUrl,dbUrl):
         schoolObjects.append(schoolObject)
       schoolFinishPlace = places[school]
       raceResultObjects = {}
-      # for sailingPosition in divisions[div][school]:           #each position in this division (skippers or crews)
-      for sailor in divisions[div][school]['skipper']: #each sailor that sailed in this schools division position (eg A division crews)
+      for sailor in divisions[div][school]['skipper']: 
         sailorObject = getSailorOrCreate(sailor,schoolObject)
         if sailorObject not in sailorObjects:
           sailorObjects.append(sailorObject)

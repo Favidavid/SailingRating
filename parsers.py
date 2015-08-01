@@ -125,7 +125,11 @@ def parse_division_score(row):
   results = []
   columns = row.xpath('td[contains(@class,"right")]')
   for column in columns:
-    results.append(column.xpath('text()').extract()[0])
+    columnText = column.xpath('text()').extract()[0]
+    letterScores = column.xpath('@title').extract()[0]
+    if letterScores:
+      columnText+=':letters:'+letterScores
+    results.append(columnText)
   return results
 
 def lastDivision(response):
