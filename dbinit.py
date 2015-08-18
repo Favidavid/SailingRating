@@ -1,6 +1,6 @@
 import sqlalchemy
 from sqlalchemy import create_engine, Column, Integer, String, Date, Text, ForeignKey, Table
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 print sqlalchemy.__version__
 
@@ -32,12 +32,12 @@ class Sailor(Base):
   __tablename__ = 'sailors'
   id = Column(Integer, primary_key=True)
   school_id = Column(Integer, ForeignKey('schools.id'))
-  ratinghistory = relationship("RatingStamp", backref="sailor")
-  nameandyear = Column(String(100))
+  rating_history = relationship("RatingStamp", backref="sailor")
+  name_and_year = Column(String(100))
   name = Column(String(100))
   year = Column(Integer)
-  currentrating = Column(Integer)
-  currentrank = Column(Integer)
+  current_rating = Column(Integer)
+  current_rank = Column(Integer)
 
 
 class RatingStamp(Base):
@@ -68,7 +68,7 @@ class Regatta(Base):
   id = Column(Integer, primary_key=True)
   week_id = Column(Integer, ForeignKey('weeks.id'))
   #races will have races from many divisions, they are treated independently
-  races = relationship("Race", backref="regatta", order_by="Race.racenumber")
+  races = relationship("Race", backref="regatta", order_by="Race.race_number")
   sailors = relationship('Sailor', secondary=sailors_regattas, backref='regattas')
   schools = relationship('School', secondary=schools_regattas, backref='regattas')
   name = Column(String(200))
@@ -83,9 +83,9 @@ class Race(Base):
   __tablename__ = 'races'
   id = Column(Integer, primary_key=True)
   regatta_id = Column(Integer, ForeignKey('regattas.id'))
-  raceresults = relationship("RaceResult", backref="race", order_by="RaceResult.finishvalue")
+  race_results = relationship("RaceResult", backref="race", order_by="RaceResult.finish_value")
   sailors = relationship('Sailor', secondary=sailors_races, backref='races')
-  racenumber = Column(Integer)
+  race_number = Column(Integer)
   division = Column(String(10))
 
 class RaceResult(Base):
@@ -97,11 +97,11 @@ class RaceResult(Base):
   skipper_sailor_id = Column(Integer, ForeignKey('sailors.id'))
   crew_sailor_id = Column(Integer, ForeignKey('sailors.id'))
   race_id = Column(Integer, ForeignKey('races.id'))
-  skippersailor = relationship("Sailor", foreign_keys=skipper_sailor_id, backref="skipperraceresults")
-  crewsailor = relationship("Sailor", foreign_keys=crew_sailor_id, backref="crewraceresults")
-  racenumber = Column(Integer)
+  skipper_sailor = relationship("Sailor", foreign_keys=skipper_sailor_id, backref="skipper_race_results")
+  crew_sailor = relationship("Sailor", foreign_keys=crew_sailor_id, backref="crew_race_results")
+  race_number = Column(Integer)
   finish = Column(String(50))
-  finishvalue = Column(Integer)
+  finish_value = Column(Integer)
   division = Column(String(20))
 
 Base.metadata.create_all(engine)
