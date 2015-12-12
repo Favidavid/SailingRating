@@ -1,5 +1,5 @@
 import sqlalchemy
-from sqlalchemy import create_engine, Column, Integer, String, Date, Text, ForeignKey, Table
+from sqlalchemy import create_engine, Column, Integer, String, Date, Text, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 print sqlalchemy.__version__
@@ -12,6 +12,8 @@ class School(Base):
   id = Column(Integer, primary_key=True)
   sailors = relationship("Sailor", backref="school")
   name = Column(String(100))
+  def __init__(self, name):
+    self.name = name
 
 sailors_regattas = Table('sailors_regattas', Base.metadata,
   Column('sailor_id', Integer, ForeignKey('sailors.id')),
@@ -32,12 +34,22 @@ class Sailor(Base):
   __tablename__ = 'sailors'
   id = Column(Integer, primary_key=True)
   school_id = Column(Integer, ForeignKey('schools.id'))
-  rating_history = relationship("RatingStamp", backref="sailor")
+  rating_history = relationship("RatingStamp", backref="sailor", order_by="RatingStamp.date")
   name_and_year = Column(String(100))
   name = Column(String(100))
   year = Column(Integer)
+  races_sailed = Column(Integer)
+  provisional = Column(Boolean)
   current_rating = Column(Integer)
   current_rank = Column(Integer)
+  def __init__(self, name_and_year, school, start_rating, provisional=True):
+    self.name_and_year = name_and_year
+    self.school = school
+    self.name = name_and_year[:-4]
+    self.year = int(name_and_year[-2:])+2000
+    self.current_rating = start_rating
+    self.provisional = provisional
+    self.races_sailed = 0
 
 
 class RatingStamp(Base):
@@ -47,6 +59,11 @@ class RatingStamp(Base):
   rating = Column(Integer)
   rank = Column(Integer)
   date = Column(Date)
+  def __init__(self, sailor, rating, rank, date):
+    self.sailor = sailor
+    self.rating = rating
+    self.rank = rank
+    self.date = date
 
 
 class Season(Base):
@@ -78,6 +95,15 @@ class Regatta(Base):
   boat = Column(String(50))
   scoring = Column(String(50))
   summary = Column(Text)
+  date = Column(Date)
+  def __init__(self, name, url, host, date, tier, boat, scoring, summary):
+    self.name = name
+    self.url = url
+    self.host = host
+    self.tier = tier
+    self.boat = boat
+    self.scoring = scoring
+    self.summary = summary
 
 class Race(Base):
   __tablename__ = 'races'
@@ -87,7 +113,10 @@ class Race(Base):
   sailors = relationship('Sailor', secondary=sailors_races, backref='races')
   race_number = Column(Integer)
   division = Column(String(10))
-
+  def __init__(self, race_number, regatta, division):
+    self.race_number = race_number
+    self.regatta = regatta
+    self.division = division
 class RaceResult(Base):
   """
   A race result will always have a skipper, and 0 or 1 crew
@@ -103,5 +132,13 @@ class RaceResult(Base):
   finish = Column(String(50))
   finish_value = Column(Integer)
   division = Column(String(20))
+  def __init__(self, skipper, race_number, finish_place, finish_value, division, race_object):
+    self.skipper_sailor = skipper
+    self.race_number = race_number
+    self.finish_place = finish_place
+    self.finish_value = finish_value
+    self.division = division
+    self.race = race_object
+
 
 Base.metadata.create_all(engine)

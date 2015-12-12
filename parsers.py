@@ -8,14 +8,14 @@ def parse_season(response):
   season = dict()
   currentWeek = None
   for row in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr'):
-    if (len(row.xpath('@class').extract()) == 0):
+    if len(row.xpath('@class').extract()) == 0:
       weekName = row.xpath('th/text()').extract()[0]
       season[weekName] = dict()
       print weekName
     else:
       regattaType = row.xpath('td[4]/text()').extract()
-      if (len(regattaType) != 0):
-        if (regattaType[0] in allowedTypes):
+      if len(regattaType) != 0:
+        if regattaType[0] in allowedTypes:
           regattaName = row.xpath('td[1]/a/text()').extract()[0]
           href = row.xpath('td[1]/a/@href').extract()[0]
           regattaUrl = response.url + href
@@ -31,6 +31,7 @@ def parse_week(response):
 def parse_regatta(response):
   xpathRegattaName = '//*[@id="content-header"]/h1/span[2]/text()'
   xpathRegattaHost = '//*[@id="page-info"]/li[1]/span[2]/span/text()'
+  xpathRegattaDate = '//*[@id="page-info"]/li[2]/span[2]/time/text()'
   xpathRegattaTier = '//*[@id="page-info"]/li[3]/span[2]/span/text()'
   xpathRegattaBoat = '//*[@id="page-info"]/li[4]/span[2]/text()'
   xpathRegattaScoring = '//*[@id="page-info"]/li[5]/span[2]/text()'
@@ -42,6 +43,7 @@ def parse_regatta(response):
   regatta = dict()
   regatta['name'] = response.xpath( xpathRegattaName ).extract()[0]
   regatta['host'] = response.xpath( xpathRegattaHost ).extract()[0]
+  regatta['date'] = response.xpath( xpathRegattaDate ).extract()[0]
   regatta['tier'] = response.xpath( xpathRegattaTier ).extract()[0]
   regatta['boat'] = response.xpath( xpathRegattaBoat ).extract()[0]
   regatta['scoring'] = response.xpath( xpathRegattaScoring ).extract()[0]
@@ -64,7 +66,7 @@ def parse_regatta(response):
   #populate competitors
   competitorsLinks = LinkExtractor(restrict_xpaths = ('//*[@id="menu"]'), allow = ('.*/[A-E]/') ).extract_links(response)
   #singlehanded regatta competitors
-  if (len(competitorsLinks) == 0):
+  if len(competitorsLinks) == 0:
     competitors = dict()
     competitors['divA'] = parse_singlehanded_competitors_division(response)
     regatta['competitors'] = competitors
@@ -89,8 +91,8 @@ def parse_full_scores(response):
   fullScores['numberOfRaces'] = numberOfRaces
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     divClass = row.xpath('@class').extract()[0]
-    if ('div' in divClass):
-      if (divClass == 'divA'):
+    if 'div' in divClass:
+      if divClass == 'divA':
         schoolScore = dict()
         currentSchool = row.xpath('td[3]/a/text()').extract()[0]
         currentPlace = row.xpath('td[2]/text()').extract()[0]
@@ -98,7 +100,7 @@ def parse_full_scores(response):
         schoolScore[ divClass ] = parse_division_score(row)## list of A division results
       else:
         schoolScore[ divClass ] = parse_division_score(row)
-      if (row.xpath('@class').extract()[0] == lastdivision ):
+      if row.xpath('@class').extract()[0] == lastdivision:
         fullScores[currentPlace] = schoolScore
   return fullScores
 
@@ -112,7 +114,7 @@ def parse_singlehanded_results(response):
   fullScores['numberOfRaces'] = numberOfRaces
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     divClass = row.xpath('@class').extract()[0]
-    if (divClass == 'divA'):
+    if divClass == 'divA':
       schoolScore = dict()
       currentSchool = row.xpath('td[3]/a/text()').extract()[0]
       currentPlace = row.xpath('td[2]/text()').extract()[0]
@@ -134,13 +136,13 @@ def parse_division_score(row):
 
 def lastDivision(response):
   divisionsText = response.xpath('//*[@id="page-info"]/li[5]/span[2]/text()').extract()[0]
-  if (divisionsText == '2 Divisions'):
+  if divisionsText == '2 Divisions':
     return 'divB'
-  elif (divisionsText == '3 Divisions'):
+  elif divisionsText == '3 Divisions':
     return 'divC'
-  elif (divisionsText == 'Singlehanded' or divisionsText == '1 Division'):
+  elif divisionsText == 'Singlehanded' or divisionsText == '1 Division':
     return 'divA'
-  elif (divisionsText == '4 Divisions'):
+  elif divisionsText == '4 Divisions':
     return 'divD'
   else:
     return 'divB'
@@ -151,22 +153,22 @@ def parse_competitors_division(response):
   currentPlace = '1'
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     rowClass = row.xpath('@class').extract()[0]
-    if ('topborder' in rowClass): 
+    if 'topborder' in rowClass:
       schoolCompetitors = dict({'skipper':dict(),'crew':dict()})
       currentSchool = row.xpath('*[contains(@class,"schoolname")]/a/text()').extract()[0]
     positionXpath = row.xpath("*[contains(@class,'sailor-name')]/@class").extract()
-    if (len(positionXpath) > 0):
+    if len(positionXpath) > 0:
       position = positionXpath[0][12:]
       racesSailed = row.xpath('*[contains(@class,"races")]/text()').extract()
       sailorName = row.xpath('*[contains(@class,"sailor-name")]/text()').extract()[0]
-      if (len(racesSailed) == 0):
+      if len(racesSailed) == 0:
         schoolCompetitors[position][sailorName] = u''
       else:
         schoolCompetitors[position][sailorName] = racesSailed[0]
     ## if last row of competitors (no following siblings)
-    if (len(row.xpath('following-sibling::tr[1]').extract() ) == 0):
+    if len(row.xpath('following-sibling::tr[1]').extract() ) == 0:
       competitorsDivision[currentSchool] = schoolCompetitors
-    elif ('topborder' in row.xpath('following-sibling::tr[1]/@class').extract()[0]):
+    elif 'topborder' in row.xpath('following-sibling::tr[1]/@class').extract()[0]:
       competitorsDivision[currentSchool] = schoolCompetitors
   return competitorsDivision
 
