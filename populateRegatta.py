@@ -1,37 +1,25 @@
-import parsers
-from parsers import getResponse
-from dbinit import *
-import getopt
+from dbinit import School, Sailor, Regatta, Race, RaceResult
+import datetime
 
-REGATTA_DOMAIN = "http://scores.collegesailing.org/"
-DB_DOMAIN = "mysql+pymysql://root:password@localhost/"
+START_RATING = 1000
 
 
-def main(argv=None):
-  opts, args = getopt.getopt(argv)
-  db_url = DB_DOMAIN + args[0]
-  regatta_url = REGATTA_DOMAIN + args[1] + '/' + args[2]
-  populate_regatta(db_url, regatta_url)
 
-def test_response():
-  return getResponse("http://www.google.com")
+def populate_regatta(regatta_dict, session):
 
-def populate_regatta(db_url, regatta_url):
-  engine = create_engine(db_url, echo=True)
-  Base.metadata.bind = engine
-  session_maker = sessionmaker(bind=engine)
 
-  regatta = parsers.parse_regatta(getResponse(regatta_url))
-  divisions = regatta['competitors']
-  scores = regatta['fullScores']
-  places = regatta['places']
+  divisions = regatta_dict['competitors']
+  scores = regatta_dict['fullScores']
+  places = regatta_dict['places']
   number_of_races = scores['numberOfRaces']
   number_of_schools = len(divisions['divA'])
   summary = ''
-  for text in regatta['summary']:
+  for text in regatta_dict['summary']:
     add_string = ' '+text
     summary+=add_string
-  session = session_maker()
+
+  ##########SESSION CREATED###########
+
   def races_sailed_parser(races):
     """Return list of integers representing the races sailed by a sailor"""
     if len(races) == 0:
@@ -59,7 +47,7 @@ def populate_regatta(db_url, regatta_url):
     return return_sailor
 
   def new_sailor(name_and_year, school_object):
-    return Sailor(name_and_year,school_object,1000)
+    return Sailor(name_and_year,school_object, START_RATING)
 
   def get_school_or_create(school_name):
     """Return school object from db. If it does not exist, create one"""
@@ -85,16 +73,21 @@ def populate_regatta(db_url, regatta_url):
       else:
         return int(finish_string)
   def parse_date(date_string):
-    dates = date_string.split('-')
-
+    # 'November 21-22, 2015'
+    # datetime.date(2015,11,22)
+    fields = date_string.split(' ')
+    year = int(fields[2])
+    month = datetime.datetime.strptime(fields[0],'%B').month
+    day = int(fields[1].split('-')[-1][:-1])
+    return datetime.date(year ,month, day)
 
   def create_race_result(skipper,race_number,finish_place,division):
     race_result = RaceResult(skipper,race_number,finish_place,finish_value(finish_place),
       division,race_objects[race_number])
     return race_result
 
-  regatta_object = Regatta(regatta['name'],regatta_url,regatta['host'],parse_date(regatta['date']),regatta['tier'],
-    regatta['boat'],regatta['scoring'],regatta['summary'])
+  regatta_object = Regatta(regatta_dict['name'],regatta_dict['url'],regatta_dict['host'],parse_date(regatta_dict['date']),regatta_dict['tier'],
+    regatta_dict['boat'],regatta_dict['scoring'],regatta_dict['summary'])
   sailor_objects = []
   school_objects = []
 
@@ -133,8 +126,4 @@ def populate_regatta(db_url, regatta_url):
   for school_object in school_objects:
     regatta_object.schools.append(school_object)
   session.add(regatta_object)
-  session.commit()
-  return regatta
-
-if __name__ == "__main__":
-  main()
+  return regatta_object

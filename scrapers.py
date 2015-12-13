@@ -1,10 +1,7 @@
 from scrapy.contrib.linkextractors import LinkExtractor
 import lxml.html
-import scrapy
 
-
-
-def parse_season(response):
+def scrape_season(response):
   season = dict()
   currentWeek = None
   for row in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr'):
@@ -19,16 +16,18 @@ def parse_season(response):
           regattaName = row.xpath('td[1]/a/text()').extract()[0]
           href = row.xpath('td[1]/a/@href').extract()[0]
           regattaUrl = response.url + href
-          season[weekName][regattaName] = parse_regatta(getResponse(regattaUrl))
+          season[weekName][regattaName] = scrape_regatta(getResponse(regattaUrl))
   return season
 
-def parse_week(response):
+def scrape_week(response):
   week = dict()
   for regatta in response.xpath():
-    week[regattaName] = parse_regatta(regatta)
+    week[regattaName] = scrape_regatta(regatta)
   return week
 
-def parse_regatta(response):
+def scrape_regatta(regatta_url):
+  response = getResponse(regatta_url)
+
   xpathRegattaName = '//*[@id="content-header"]/h1/span[2]/text()'
   xpathRegattaHost = '//*[@id="page-info"]/li[1]/span[2]/span/text()'
   xpathRegattaDate = '//*[@id="page-info"]/li[2]/span[2]/time/text()'
@@ -41,6 +40,7 @@ def parse_regatta(response):
   xpathReportSchoolName = 'td[4]/a/span/text()'
   xpathReportSchoolFinishPlace = 'td[2]/text()'
   regatta = dict()
+  regatta['url'] = regatta_url
   regatta['name'] = response.xpath( xpathRegattaName ).extract()[0]
   regatta['host'] = response.xpath( xpathRegattaHost ).extract()[0]
   regatta['date'] = response.xpath( xpathRegattaDate ).extract()[0]
@@ -61,28 +61,28 @@ def parse_regatta(response):
   regatta['places'] = places
 
   #populate fullScores (works for singlehanded as well)
-  regatta['fullScores'] = parse_full_scores(fullScoresResponse)
+  regatta['fullScores'] = scrape_full_scores(fullScoresResponse)
 
   #populate competitors
   competitorsLinks = LinkExtractor(restrict_xpaths = ('//*[@id="menu"]'), allow = ('.*/[A-E]/') ).extract_links(response)
   #singlehanded regatta competitors
   if len(competitorsLinks) == 0:
     competitors = dict()
-    competitors['divA'] = parse_singlehanded_competitors_division(response)
+    competitors['divA'] = scrape_singlehanded_competitors_division(response)
     regatta['competitors'] = competitors
   #division regattas, could be single division
   else:
     competitors = dict()
     for divisionLink in competitorsLinks:
       divisionCompetitorsResponse = getResponse(divisionLink.url)
-      divisionCompetitors = parse_competitors_division(divisionCompetitorsResponse)
+      divisionCompetitors = scrape_competitors_division(divisionCompetitorsResponse)
       #divisionLink.text[-1] gets the division letter from link text. Used as keys for competitors item
       div = 'div' + divisionLink.text[-1]
       competitors[div] = divisionCompetitors
     regatta['competitors'] = competitors
   return regatta
 
-def parse_full_scores(response):
+def scrape_full_scores(response):
   fullScores = dict()
   lastdivision = lastDivision(response)
   currentSchool = None
@@ -97,14 +97,14 @@ def parse_full_scores(response):
         currentSchool = row.xpath('td[3]/a/text()').extract()[0]
         currentPlace = row.xpath('td[2]/text()').extract()[0]
         schoolScore[ 'name' ] = currentSchool
-        schoolScore[ divClass ] = parse_division_score(row)## list of A division results
+        schoolScore[ divClass ] = scrape_division_score(row)## list of A division results
       else:
-        schoolScore[ divClass ] = parse_division_score(row)
+        schoolScore[ divClass ] = scrape_division_score(row)
       if row.xpath('@class').extract()[0] == lastdivision:
         fullScores[currentPlace] = schoolScore
   return fullScores
 
-def parse_singlehanded_results(response):
+def scrape_singlehanded_results(response):
   fullScores = dict()
   fullScores['divA'] = dict()
   lastdivision = lastDivision(response)
@@ -119,11 +119,11 @@ def parse_singlehanded_results(response):
       currentSchool = row.xpath('td[3]/a/text()').extract()[0]
       currentPlace = row.xpath('td[2]/text()').extract()[0]
       schoolScore['name'] = currentSchool
-      schoolScore[ 'divA' ] = parse_division_score(row)## list of A division results
+      schoolScore[ 'divA' ] = scrape_division_score(row)## list of A division results
       fullScores[currentPlace] = schoolScore
   return fullScores
 
-def parse_division_score(row):
+def scrape_division_score(row):
   results = []
   columns = row.xpath('td[contains(@class,"right")]')
   for column in columns:
@@ -147,7 +147,7 @@ def lastDivision(response):
   else:
     return 'divB'
 
-def parse_competitors_division(response):
+def scrape_competitors_division(response):
   competitorsDivision = dict()
   currentSchool = None
   currentPlace = '1'
@@ -172,7 +172,7 @@ def parse_competitors_division(response):
       competitorsDivision[currentSchool] = schoolCompetitors
   return competitorsDivision
 
-def parse_singlehanded_competitors_division(response):
+def scrape_singlehanded_competitors_division(response):
   competitorsDivision = dict()
   for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
     sailorName = row.xpath('*[contains(@class,"teamname")]/text()').extract()[0]

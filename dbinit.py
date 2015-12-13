@@ -2,9 +2,11 @@ import sqlalchemy
 from sqlalchemy import create_engine, Column, Integer, String, Date, Text, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-print sqlalchemy.__version__
 
-engine = create_engine('mysql+pymysql://root:password@localhost/test6', echo=True)
+
+DB_DOMAIN = "mysql+pymysql://root:password@localhost/"
+db_url = DB_DOMAIN+'testdb'
+engine = sqlalchemy.create_engine(db_url, echo=True)
 Base = declarative_base()
 
 class School(Base):
@@ -104,6 +106,7 @@ class Regatta(Base):
     self.boat = boat
     self.scoring = scoring
     self.summary = summary
+    self.date = date
 
 class Race(Base):
   __tablename__ = 'races'
@@ -139,6 +142,5 @@ class RaceResult(Base):
     self.finish_value = finish_value
     self.division = division
     self.race = race_object
-
 
 Base.metadata.create_all(engine)
