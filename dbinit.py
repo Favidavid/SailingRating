@@ -1,12 +1,7 @@
-import sqlalchemy
-from sqlalchemy import create_engine, Column, Integer, String, Date, Text, ForeignKey, Table, Boolean
+from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey, Table, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-
-DB_DOMAIN = "mysql+pymysql://root:password@localhost/"
-db_url = DB_DOMAIN+'testdb'
-engine = sqlalchemy.create_engine(db_url, echo=True)
 Base = declarative_base()
 
 class School(Base):
@@ -132,7 +127,7 @@ class RaceResult(Base):
   skipper_sailor = relationship("Sailor", foreign_keys=skipper_sailor_id, backref="skipper_race_results")
   crew_sailor = relationship("Sailor", foreign_keys=crew_sailor_id, backref="crew_race_results")
   race_number = Column(Integer)
-  finish = Column(String(50))
+  finish_place = Column(String(200))
   finish_value = Column(Integer)
   division = Column(String(20))
   def __init__(self, skipper, race_number, finish_place, finish_value, division, race_object):
@@ -142,5 +137,3 @@ class RaceResult(Base):
     self.finish_value = finish_value
     self.division = division
     self.race = race_object
-
-Base.metadata.create_all(engine)
