@@ -9,10 +9,10 @@ def populate_regatta(regatta_dict, session):
 
 
   competitor_divisions = regatta_dict['competitor_divisions']
-  scores = regatta_dict['fullScores']
-  places = regatta_dict['places']
-  number_of_races = scores['numberOfRaces']
-  number_of_schools = len(competitor_divisions['divA'])
+  scores = regatta_dict['full_scores']
+  # places = regatta_dict['places']
+  number_of_races = scores['number_of_races']
+  number_of_teams = len(competitor_divisions['divA'])
   summary = ''
   for text in regatta_dict['summary']:
     add_string = ' '+text
@@ -58,7 +58,7 @@ def populate_regatta(regatta_dict, session):
 
 
   def get_school_or_create(school_name):
-    """Return school_team object from db. If it does not exist, create one"""
+    """Return school object from db. If it does not exist, create one"""
     school_objects = session.query(School).filter(School.name == school_name).all()
     if len(school_objects) == 0:
       school_object = new_school(school_name)
@@ -66,7 +66,7 @@ def populate_regatta(regatta_dict, session):
     else:
       school_object = school_objects[0]
     if len(school_objects) > 1:
-      print "more than one school_team"
+      print "more than one school"
     return school_object
 
   def new_school(school_name):
@@ -77,7 +77,7 @@ def populate_regatta(regatta_dict, session):
       if ('BKD' in finish_string) or ('RDG' in finish_string):
         return int(finish_string.split(':letters:')[1].split(':')[0][1:])
       else:
-        return number_of_schools+1
+        return number_of_teams+1
     else:
       return int(finish_string)
 
@@ -102,33 +102,33 @@ def populate_regatta(regatta_dict, session):
   sailor_objects = []
   school_objects = []
 
-  for div in competitor_divisions:
+  for div_key, div in competitor_divisions.iteritems():
     race_objects = []
     for i in range(int(number_of_races)):
       race_number = i
-      new_race = Race(race_number,regatta_object,div)
+      new_race = Race(race_number,regatta_object,div_key)
       race_objects.append(new_race)
       session.add(new_race)
-    for school_team in competitor_divisions[div]:
-      school_object = get_school_or_create(competitor_divisions[div][school_team]['school'])
+    for team_key, team in div.iteritems():
+      school_object = get_school_or_create(team['school'])
       if school_object not in school_objects:
         school_objects.append(school_object)
-      school_finish_place = places[school_team]
+      # team_finish_place = places[team_key] # team['place']
       race_result_objects = {}
-      for sailor in competitor_divisions[div][school_team]['skipper']:
-        sailor_object = get_sailor_or_create(sailor,school_object)
+      for sailor_key, sailor in team['skipper'].iteritems():
+        sailor_object = get_sailor_or_create(sailor_key,school_object)
         if sailor_object not in sailor_objects:
           sailor_objects.append(sailor_object)
-        races_sailed = races_sailed_parser(competitor_divisions[div][school_team]['skipper'][sailor])
+        races_sailed = races_sailed_parser(sailor)
         for race_number in races_sailed:
-          race_result_object = create_race_result(sailor_object,race_number,scores[school_finish_place][div][race_number],div)
+          race_result_object = create_race_result(sailor_object,race_number,scores[team_key][div_key][race_number],div_key)
           race_result_objects[race_number] = race_result_object
           race_objects[race_number].sailors.append(sailor_object)
-      for sailor in competitor_divisions[div][school_team]['crew']:
-        sailor_object = get_sailor_or_create(sailor,school_object)
+      for sailor_key, sailor in team['crew'].iteritems():
+        sailor_object = get_sailor_or_create(sailor_key,school_object)
         if sailor_object not in sailor_objects:
           sailor_objects.append(sailor_object)
-        races_sailed = races_sailed_parser(competitor_divisions[div][school_team]['crew'][sailor])
+        races_sailed = races_sailed_parser(sailor)
         for race_number in races_sailed:
           race_result_objects[race_number].crewsailors = sailor_object
           race_objects[race_number].sailors.append(sailor_object)
