@@ -1,13 +1,15 @@
-from dbinit import School, Sailor, Regatta, Race, RaceResult
+from dbinit import School, Sailor, Regatta, Race, RaceResult, Week
 import datetime
 
 START_RATING = 1000
 
 
+def populate_week(week_dict, regattas, session):
+  week_object = Week(regattas, week_dict['number'])
+  session.add(week_object)
+  return week_object
 
 def populate_regatta(regatta_dict, session):
-
-
   competitor_divisions = regatta_dict['competitor_divisions']
   scores = regatta_dict['full_scores']
   # places = regatta_dict['places']
@@ -18,12 +20,10 @@ def populate_regatta(regatta_dict, session):
     add_string = ' '+text
     summary+=add_string
 
-  ##########SESSION CREATED###########
-
   def races_sailed_parser(races):
     """Return list of integers representing the races sailed by a sailor"""
     if len(races) == 0:
-      return list(range(0,int(number_of_races)))
+      return list(range(0,number_of_races))
     else:
       races_list = list()
       for ran in races.split(','):
@@ -40,7 +40,7 @@ def populate_regatta(regatta_dict, session):
     if len(sailor_objects) == 0:
       return_sailor = new_sailor(name_and_year, sailor_school)
       session.add(return_sailor)
-    else: 
+    else:
       return_sailor = sailor_objects[0]
     if len(sailor_objects) > 1:
       print "more than one sailor"
@@ -93,8 +93,6 @@ def populate_regatta(regatta_dict, session):
   def create_race_result(skipper,race_number,finish_place,division):
     race_result = RaceResult(skipper,race_number,finish_place,finish_value(finish_place),
       division,race_objects[race_number])
-    print finish_place
-    print finish_value(finish_place)
     return race_result
 
   regatta_object = Regatta(regatta_dict['name'],regatta_dict['url'],regatta_dict['host'],parse_date(regatta_dict['date']),regatta_dict['tier'],
@@ -104,7 +102,7 @@ def populate_regatta(regatta_dict, session):
 
   for div_key, div in competitor_divisions.iteritems():
     race_objects = []
-    for i in range(int(number_of_races)):
+    for i in range(number_of_races):
       race_number = i
       new_race = Race(race_number,regatta_object,div_key)
       race_objects.append(new_race)
@@ -121,17 +119,19 @@ def populate_regatta(regatta_dict, session):
           sailor_objects.append(sailor_object)
         races_sailed = races_sailed_parser(sailor)
         for race_number in races_sailed:
-          race_result_object = create_race_result(sailor_object,race_number,scores[team_key][div_key][race_number],div_key)
-          race_result_objects[race_number] = race_result_object
-          race_objects[race_number].sailors.append(sailor_object)
+          if race_number < number_of_races:
+            race_result_object = create_race_result(sailor_object,race_number,scores[team_key][div_key][race_number],div_key)
+            race_result_objects[race_number] = race_result_object
+            race_objects[race_number].sailors.append(sailor_object)
       for sailor_key, sailor in team['crew'].iteritems():
         sailor_object = get_sailor_or_create(sailor_key,school_object)
         if sailor_object not in sailor_objects:
           sailor_objects.append(sailor_object)
         races_sailed = races_sailed_parser(sailor)
         for race_number in races_sailed:
-          race_result_objects[race_number].crewsailors = sailor_object
-          race_objects[race_number].sailors.append(sailor_object)
+          if race_number < number_of_races:
+            race_result_objects[race_number].crewsailors = sailor_object
+            race_objects[race_number].sailors.append(sailor_object)
   for sailor_object in sailor_objects:
     regatta_object.sailors.append(sailor_object)
   for school_object in school_objects:

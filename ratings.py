@@ -15,10 +15,7 @@ def process_regatta_ratings(regatta, session):
   for sailor in regatta.sailors:
     cumulative_adj = sailor_stats[sailor.name_and_year][0]
     num_sailed = sailor_stats[sailor.name_and_year][1]
-    print "======= " + sailor.name_and_year
-    print sailor_stats[sailor.name_and_year]
     if num_sailed == 0:
-      print "zero races"
       continue
     sailor.current_rating += int(round(cumulative_adj))#/ float(num_sailed)))
     new_rating = RatingStamp(sailor, sailor.current_rating, 0, regatta.date)
@@ -42,13 +39,10 @@ def adjust_skipper_rating_race(race_result,race):
       o_skipper = o_race_result.skipper_sailor
       if fin_val > o_race_result.finish_value:
         race_adjustment -= K_FACTOR * adjust_1vs1(skipper.current_rating, o_skipper.current_rating)
-        print "win "+str(adjust_1vs1(skipper.current_rating, o_skipper.current_rating))
       elif fin_val < o_race_result.finish_value:
         race_adjustment += K_FACTOR * adjust_1vs1(skipper.current_rating, o_skipper.current_rating)
-        print "lose "+str(adjust_1vs1(skipper.current_rating, o_skipper.current_rating))
       else:
         race_adjustment += K_FACTOR * adjust_1vs1(skipper.current_rating, o_skipper.current_rating, True)
-        print "tie "+str(adjust_1vs1(skipper.current_rating, o_skipper.current_rating, True))
   sailor_stats[skipper.name_and_year][0] += race_adjustment
   sailor_stats[skipper.name_and_year][1] += 1
 

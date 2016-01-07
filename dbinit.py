@@ -75,7 +75,9 @@ class Week(Base):
   season_id = Column(Integer, ForeignKey('seasons.id'))
   regattas = relationship("Regatta", backref="week")
   number = Column(Integer)
-  date = Column(Date)
+  def __init__(self, regattas, number):
+    self.regattas = regattas
+    self.number = number
 
 class Regatta(Base):
   __tablename__ = 'regattas'
