@@ -3,6 +3,7 @@ from dbinit import RatingStamp
 
 
 PROVISIONAL_MIN = 5
+K_FACTOR = 5.0
 
 sailor_stats = {}
 def process_regatta_ratings(regatta, session):
@@ -40,15 +41,16 @@ def adjust_skipper_rating_race(race_result,race):
     if (o_race_result.id != race_result.id) and (skipper.provisional or not o_race_result.skipper_sailor.provisional):
       o_skipper = o_race_result.skipper_sailor
       if fin_val > o_race_result.finish_value:
-        race_adjustment -= adjust_1vs1(skipper.current_rating, o_skipper.current_rating)
+        race_adjustment -= K_FACTOR * adjust_1vs1(skipper.current_rating, o_skipper.current_rating)
         print "win "+str(adjust_1vs1(skipper.current_rating, o_skipper.current_rating))
       elif fin_val < o_race_result.finish_value:
-        race_adjustment += adjust_1vs1(skipper.current_rating, o_skipper.current_rating)
+        race_adjustment += K_FACTOR * adjust_1vs1(skipper.current_rating, o_skipper.current_rating)
         print "lose "+str(adjust_1vs1(skipper.current_rating, o_skipper.current_rating))
       else:
-        race_adjustment += adjust_1vs1(skipper.current_rating, o_skipper.current_rating, True)
+        race_adjustment += K_FACTOR * adjust_1vs1(skipper.current_rating, o_skipper.current_rating, True)
         print "tie "+str(adjust_1vs1(skipper.current_rating, o_skipper.current_rating, True))
   sailor_stats[skipper.name_and_year][0] += race_adjustment
   sailor_stats[skipper.name_and_year][1] += 1
 
-
+def adjust_rankings():
+  return None
