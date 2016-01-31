@@ -47,4 +47,5 @@ def adjust_skipper_rating_race(race_result,race):
   sailor_stats[skipper.name_and_year][1] += 1
 
 def adjust_rankings():
+  #TODO
   return None

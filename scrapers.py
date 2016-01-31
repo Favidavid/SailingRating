@@ -1,7 +1,8 @@
 from scrapy.http import HtmlResponse
-from scrapy.contrib.linkextractors import LinkExtractor
+from scrapy.linkextractors import LinkExtractor
 import lxml.html
 
+base_url = 'http://scores.collegesailing.org'
 xpathRegattaName = '//*[@id="content-header"]/h1/span[2]/text()'
 xpathRegattaHost = '//*[@id="page-info"]/li[1]/span[2]/span/text()'
 xpathRegattaDate = '//*[@id="page-info"]/li[2]/span[2]/time/text()'
@@ -15,23 +16,29 @@ xpath_report_school_team_name = 'td[@class="teamname"]/text()'
 xpath_report_single_sailor_name = 'td[@class="teamname"]/span/a/text()'
 xpathReportSchoolFinishPlace = 'td[2]/text()'
 
+def scrape_seasons_ordered():
+  response = get_response('http://scores.collegesailing.org/seasons')
+  seasons_response = response.xpath('//*[@id="page-info"]/li')
+  seasons = []
+  for season in seasons_response:
+    season_dict = dict()
+    season_url = base_url + season.xpath('span[2]/a/@href').extract()[0]
+    season_name = season.xpath('span[1]/text()').extract()[0]
+    season_dict['name'] = season_name
+    season_dict['url'] = season_url
+    seasons.append(season_dict)
+  seasons.reverse()
+  return seasons
 
-def scrape_season(response):
-  season = dict()
-  currentWeek = None
-  for week in response.xpath('//*[contains(text(),"Week ")]'):
-    if len(row.xpath('@class').extract()) == 0:
-      weekName = row.xpath('th/text()').extract()[0]
-      season[weekName] = dict()
-    else:
-      regattaType = row.xpath('td[4]/text()').extract()
-      if len(regattaType) != 0:
-        if regattaType[0] in allowedTypes:
-          regattaName = row.xpath('td[1]/a/text()').extract()[0]
-          href = row.xpath('td[1]/a/@href').extract()[0]
-          regattaUrl = response.url + href
-          season[weekName][regattaName] = scrape_regatta(get_response(regattaUrl))
-  return season
+def scrape_weeks_ordered(season_url):
+  response = get_response(season_url)
+  weeks = []
+  for week in response.xpath('//*[contains(text(),"Week ")]/text()').extract():
+    week_number = int(week[5:])
+    week_dict = scrape_week(season_url,week_number)
+    weeks.append(week_dict)
+  weeks.reverse()
+  return weeks
 
 def scrape_week(season_url, week_num):
   week = dict()
@@ -69,7 +76,8 @@ def scrape_regatta(regatta_url):
 def set_regatta_data(regatta, regatta_url, response):
   regatta['url'] = regatta_url
   regatta['name'] = response.xpath(xpathRegattaName).extract()[0]
-  regatta['host'] = response.xpath(xpathRegattaHost).extract()[0]
+  if len(response.xpath(xpathRegattaHost).extract())>0:
+    regatta['host'] = response.xpath(xpathRegattaHost).extract()[0]
   regatta['date'] = response.xpath(xpathRegattaDate).extract()[0]
   regatta['tier'] = response.xpath(xpathRegattaTier).extract()[0]
   regatta['boat'] = response.xpath(xpathRegattaBoat).extract()[0]

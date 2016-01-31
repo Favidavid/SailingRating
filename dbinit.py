@@ -68,6 +68,11 @@ class Season(Base):
   id = Column(Integer, primary_key=True)
   weeks = relationship("Week", backref="season", order_by="Week.number")
   name = Column(String(50))
+  url = Column(String(200))
+  def __init__(self, name, weeks, url):
+    self.name = name
+    self.weeks = weeks
+    self.url = url
 
 class Week(Base):
   __tablename__ = 'weeks'
