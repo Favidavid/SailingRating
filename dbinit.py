@@ -88,9 +88,10 @@ class Week(Base):
     regattas = relationship("Regatta", backref="week")
     number = Column(Integer)
 
-    def __init__(self, regattas, number):
+    def __init__(self, regattas, number, season_id):
         self.regattas = regattas
         self.number = number
+        self.season_id = season_id
 
 
 class Regatta(Base):

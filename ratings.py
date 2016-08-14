@@ -5,15 +5,24 @@ from dbinit import RatingStamp
 PROVISIONAL_MIN = 5
 K_FACTOR = 5.0
 
-sailor_stats = {}
+
+def score_week(regattas, session):
+    for regatta in regattas:
+        try:
+            score_regatta_ratings(regatta, session)
+            session.commit()
+        except:
+            print('regatta with url: ' + regatta.url + ', was not scored correctly')
 
 
-def process_regatta_ratings(regatta, session):
+def score_regatta_ratings(regatta, session):
+    sailor_stats = {}
     for sailor in regatta.sailors:
         # [adjustment_sum, no_races_sailed]
         sailor_stats[sailor.name_and_year] = [0, 0]
     for race in regatta.races:
-        process_race(race)
+        for race_result in race.race_results:
+            update_skipper_stats_for_one_race(race_result, race, sailor_stats)
     for sailor in regatta.sailors:
         cumulative_adj = sailor_stats[sailor.name_and_year][0]
         num_sailed = sailor_stats[sailor.name_and_year][1]
@@ -29,12 +38,7 @@ def process_regatta_ratings(regatta, session):
         session.add(sailor)
 
 
-def process_race(race):
-    for race_result in race.race_results:
-        adjust_skipper_rating_race(race_result, race)
-
-
-def adjust_skipper_rating_race(race_result, race):
+def update_skipper_stats_for_one_race(race_result, race, sailor_stats):
     race_adjustment = float()
     fin_val = race_result.finish_value
     skipper = race_result.skipper_sailor
@@ -52,6 +56,6 @@ def adjust_skipper_rating_race(race_result, race):
     sailor_stats[skipper.name_and_year][1] += 1
 
 
-def adjust_rankings():
-    # TODO
-    return None
+def update_rankings(session):
+
+    session.commit()

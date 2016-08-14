@@ -6,6 +6,7 @@ import argparse
 import traceback
 import sys
 from dbinit import Base
+from collections import OrderedDict
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-db", nargs='?', dest='db_name')
@@ -28,7 +29,7 @@ def main():
 def test_run_regatta(db_name, regatta_name):
     # create_test_db(db_name)
     reset_db()
-    session_class = get_session_class(db_name)
+    session_class = get_session_maker(db_name)
     session = session_class()
     try:
         process_regatta(REGATTA_DOMAIN+regatta_name, session)
@@ -43,8 +44,8 @@ def test_run_regatta(db_name, regatta_name):
 
 def test_run_week(db_name, season, week_number):
     reset_db()
-    session_class = get_session_class(db_name)
-    process_week(REGATTA_DOMAIN+season, week_number, session_class)
+    session_class = get_session_maker(db_name)
+    process_real_week(season, week_number, session_class())
 
 
 def test_run_full(db_name):
@@ -80,55 +81,30 @@ def reset_db(db_name='test0'):
 def process_regatta(regatta_url, session):
     regatta_dict = scrapers.scrape_regatta(regatta_url)
     regatta_object = populators.populate_regatta(regatta_dict, session)
-    ratings.process_regatta_ratings(regatta_object, session)
+    ratings.score_regatta_ratings(regatta_object, session)
 
     return regatta_object
 
 
-def process_week(season_url, week_num, session_class):
-    session = session_class()
-    week_dict = scrapers.scrape_week(season_url, week_num)
-    print("    |--week " + str(week_num))
-    # populate regatta objects
-    regattas = []
-    print(week_dict)
-    for regatta_key, regatta_info in week_dict['regatta_urls'].iteritems():
-        if regatta_info['scoring'] != "Combined":
-            try:
-                regatta_object = process_regatta(regatta_info['url'], session)
-                session.commit()
-                regattas.append(regatta_object)
-                print("        |--"+regatta_key)
-            except:
-                session.rollback()
-                traceback.print_exc(file=sys.stdout)
-                # print("        |=="+regatta_key + " was not persisted: "+regatta_info['url'])
-
-    # populate week object
-    try:
-        week_object = populators.populate_week(week_dict, regattas, session)
-        session.commit()
-    except:
-        session.rollback()
-        print("    |==week " + str(week_num) + " was not persisted")
-        # raise
-    finally:
-        session.close()
-    ratings.adjust_rankings()
-    # TODO how to handle returning week object if it is not persisted
+def process_real_week(season, week_num, session):
+    print("\nWEEK===" + str(week_num))
+    week_regatta_dicts = scrapers.scrape_week(season=season, week_num=week_num)
+    week_object = populators.populate_week(season, week_num, week_regatta_dicts, session)
+    ratings.score_week(week_object.regattas, session)
+    ratings.update_rankings()
     return week_object
 
 
 def process_all_regattas(db_name):
-    session_class = get_session_class(db_name)
+    session_class = get_session_maker(db_name)
     # session=session_class.session()
 
-    seasons_list = scrapers.scrape_seasons_ordered()
+    seasons_list = scrapers.scrape_seasons_ordered_recent_first()
     for season in seasons_list:
-        weeks_list = scrapers.scrape_weeks_ordered(season['url'])
+        weeks_list = scrapers.scrape_weeks_ordered_recent_first(season['id'])
         week_objects = []
         for week in weeks_list:
-            week_object = process_week(season['url'], week['number'], session_class)
+            week_object = process_real_week(season['id'], week['number'], session_class())
             week_objects.append(week_object)
 
         # persist season
@@ -136,7 +112,7 @@ def process_all_regattas(db_name):
         try:
             populators.populate_season(season, week_objects, session)
             session.commit()
-            print("Season " + season['name'] + " ================")
+            print("\n\n\nSEASON" + season['id'] + '   ' + season['name'] + ' ==================')
         except:
             session.rollback()
             traceback.print_exc(file=sys.stdout)
@@ -145,12 +121,12 @@ def process_all_regattas(db_name):
             session.close()
 
 
-def get_session_class(db_name):
+def get_session_maker(db_name):
     db_url = DB_DOMAIN + db_name
     engine = sqlalchemy.create_engine(db_url, echo=False)
     Base.metadata.create_all(engine)
-    session_class = sqlalchemy.orm.sessionmaker(bind=engine)
-    return session_class
+    session_maker = sqlalchemy.orm.sessionmaker(bind=engine)
+    return session_maker
 
 if __name__ == "__main__":
     main()

@@ -10,9 +10,18 @@ def populate_season(season, week_objects, session):
     return season
 
 
-def populate_week(week_dict, regattas, session):
-    week_object = Week(regattas, week_dict['number'])
+def populate_week(season_id, week_num, regattas_dicts, session):
+    regatta_objects = []
+    for regatta_dict in regattas_dicts:
+        try:
+            regatta_object = populate_regatta(regatta_dict, session)
+            session.commit()
+            regatta_objects.append(regatta_object)
+        except:
+            print(print('regatta with url: ' + regatta_dict['url'] + ', was not persisted'))
+    week_object = Week(regattas=regatta_objects, number=week_num, season_id=season_id)
     session.add(week_object)
+    session.commit()
     return week_object
 
 
