@@ -100,10 +100,10 @@ def process_all_regattas(db_name):
     # session=session_class.session()
 
     seasons_list = scrapers.scrape_seasons_ordered_recent_first()
-    for season in seasons_list:
+    for season in seasons_list.__reversed__():
         weeks_list = scrapers.scrape_weeks_ordered_recent_first(season['id'])
         week_objects = []
-        for week in weeks_list:
+        for week in weeks_list.__reversed__():
             week_object = process_real_week(season['id'], week['number'], session_class())
             week_objects.append(week_object)
 
