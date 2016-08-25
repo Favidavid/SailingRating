@@ -8,6 +8,7 @@ import populators
 import ratings
 import scrapers
 from database.objects import Base
+from database import connection
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-db", nargs='?', dest='db_name')
@@ -46,7 +47,7 @@ def test_run_regatta(db_name, regatta_name):
 def test_run_week(db_name, season, week_number):
     reset_db()
     session_class = get_session_maker(db_name)
-    process_real_week(season, week_number, session_class())
+    process_week(season, week_number, session_class())
 
 
 def test_run_full(db_name):
@@ -87,10 +88,10 @@ def process_regatta(regatta_url, session):
     return regatta_object
 
 
-def process_real_week(season, week_num, session):
+def process_week(season_id, week_num, session):
     print("\nWEEK===" + str(week_num))
-    week_regatta_dicts = scrapers.scrape_week(season=season, week_num=week_num)
-    week_object = populators.populate_week(season, week_num, week_regatta_dicts, session)
+    week_regatta_dicts = scrapers.scrape_week(season_id=season_id, week_num=week_num)
+    week_object = populators.populate_week(season_id, week_num, week_regatta_dicts, session)
     ratings.score_week(week_object.regattas, session)
     ratings.update_rankings()
     return week_object
@@ -105,7 +106,7 @@ def process_all_regattas(db_name):
         weeks_list = scrapers.scrape_weeks_ordered_recent_first(season['id'])
         week_objects = []
         for week in weeks_list.__reversed__():
-            week_object = process_real_week(season['id'], week['number'], session_class())
+            week_object = process_week(season_id=season['id'], week_num=week['number'], session=connection.db_session)
             week_objects.append(week_object)
 
         # persist season

@@ -5,12 +5,6 @@ from database.objects import School, Sailor, Regatta, Race, RaceResult, Week, Se
 START_RATING = 1000
 
 
-def populate_season(season, week_objects, session):
-    season = Season(season['name'], week_objects, season['url'])
-    session.add(season)
-    return season
-
-
 def populate_week(season_id, week_num, regattas_dicts, session):
     regatta_objects = []
     for regatta_dict in regattas_dicts:
