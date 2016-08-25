@@ -1,5 +1,6 @@
-from dbinit import School, Sailor, Regatta, Race, RaceResult, Week, Season
 import datetime
+
+from database.objects import School, Sailor, Regatta, Race, RaceResult, Week, Season
 
 START_RATING = 1000
 
@@ -18,7 +19,7 @@ def populate_week(season_id, week_num, regattas_dicts, session):
             session.commit()
             regatta_objects.append(regatta_object)
         except:
-            print(print('regatta with url: ' + regatta_dict['url'] + ', was not persisted'))
+            print('regatta with url: ' + regatta_dict['url'] + ', was not persisted')
     week_object = Week(regattas=regatta_objects, number=week_num, season_id=season_id)
     session.add(week_object)
     session.commit()

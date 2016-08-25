@@ -1,6 +1,6 @@
 from elo import adjust_1vs1
-from dbinit import RatingStamp
 
+from database.objects import RatingStamp
 
 PROVISIONAL_MIN = 5
 K_FACTOR = 5.0

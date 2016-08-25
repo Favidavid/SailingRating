@@ -1,12 +1,13 @@
+import argparse
+import sys
+import traceback
+
 import sqlalchemy
-import scrapers
+
 import populators
 import ratings
-import argparse
-import traceback
-import sys
-from dbinit import Base
-from collections import OrderedDict
+import scrapers
+from database.objects import Base
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-db", nargs='?', dest='db_name')
