@@ -2,6 +2,8 @@ from scrapy.http import HtmlResponse
 from scrapy.linkextractors import LinkExtractor
 import lxml.html
 from collections import OrderedDict
+import config
+import sys
 
 base_url = 'http://scores.collegesailing.org'
 xpath_regatta_name = '//*[@id="content-header"]/h1/span[2]/text()'
@@ -28,14 +30,18 @@ def scrape_week(season_id, week_num):
     week_regattas = []
     for regatta_url in scrape_week_regatta_urls(season_id, week_num):
         try:
-            week_regattas.append(scrape_regatta(regatta_url))
+            regatta = scrape_regatta(regatta_url)
         except:
             print('regatta with url: ' + regatta_url + ', was not scraped correctly')
+            print(sys.exc_info()[0])
+            continue
+        if regatta['scoring'] != 'Combined':
+            week_regattas.append(regatta)
     return week_regattas
 
 
 def scrape_week_regatta_urls(season_id, week_num):
-    response = get_season_response(season_id)
+    response = get_response(config.regatta_domain + season_id)
     week_response = response.xpath('//*[text()="Week '+str(week_num)+'"]/parent::tr')
     week_regatta_urls = []
     for row in week_response.xpath('following-sibling::tr'):
@@ -43,35 +49,38 @@ def scrape_week_regatta_urls(season_id, week_num):
         if len(row_class) == 0:
             break
         else:
-            regatta_url = response.url + row.xpath('td[1]/a/@href').extract()[0]
-            week_regatta_urls.append(regatta_url)
-    week_regatta_urls
+            regatta_url = response.url + '/' + row.xpath('td[1]/a/@href').extract()[0]
+            if regatta_url not in config.regatta_url_blacklist:
+                week_regatta_urls.append(regatta_url)
     return week_regatta_urls
 
 
 def scrape_seasons_ordered_recent_first():
-    response = get_response('http://scores.collegesailing.org/seasons')
+    response = get_response(config.regatta_domain + 'seasons')
     seasons_response = response.xpath('//*[@id="page-info"]/li')
-    seasons = OrderedDict()
+    seasons = []
     for season in seasons_response:
-        season_dict = dict()
+        # season_dict = dict()
         season_url = base_url + season.xpath('span[2]/a/@href').extract()[0]
-        season_id = season_url[3]
-        season_name = season.xpath('span[1]/text()').extract()[0]
-        season_dict['name'] = season_name
-        season_dict['url'] = season_url
-        season_dict['id'] = season_id
-        seasons[season_id] = season_dict
+        season_id = season_url[-4:-1]
+        # season_name = season.xpath('span[1]/text()').extract()[0]
+        # season_dict['name'] = season_name
+        # season_dict['url'] = season_url
+        # season_dict['id'] = season_id
+        seasons.append(season_id) # = season_dict
     return seasons
 
 
 def scrape_weeks_ordered_recent_first(season_id):
-    response = get_response(season_id)
-    weeks = OrderedDict()
-    for week_text in response.xpath('//*[contains(text(),"Week ")]/text()').extract():
+    response = get_response(config.regatta_domain + season_id)
+    weeks = []
+    for week_text in response.xpath('//*[@id="page-content"]/div[2]/table/tbody/tr/*[contains(text(),"Week ")]/text()').extract():
         week_number = int(week_text[5:])
-        week_dict = scrape_week_regatta_urls(season_id, week_number)
-        weeks[week_number] = week_dict
+        weeks.append(week_number)
+    # uncomment if youw ant to include preweeks
+    # for week_text in response.xpath('//*[contains(text(),"Preweek ")]/text()').extract():
+    #     week_number = -int(week_text[-1:]) + 1
+    #     weeks.append(week_number)
     return weeks
 
 
@@ -95,13 +104,22 @@ def set_regatta_data(regatta, regatta_url, response):
     regatta['name'] = response.xpath(xpath_regatta_name).extract()[0]
     regatta['date'] = response.xpath(xpath_regatta_date).extract()[0]
     regatta['scoring'] = response.xpath(xpath_regatta_scoring).extract()[0]
-    try:
+    if response.xpath(xpath_regatta_host).extract():
         regatta['host'] = response.xpath(xpath_regatta_host).extract()[0]
+    else:
+        regatta['host'] = ''
+    if response.xpath(xpath_regatta_tier).extract():
         regatta['tier'] = response.xpath(xpath_regatta_tier).extract()[0]
+    else:
+        regatta['tier'] = ''
+    if response.xpath(xpath_regatta_boat).extract():
         regatta['boat'] = response.xpath(xpath_regatta_boat).extract()[0]
+    else:
+        regatta['boat'] = ''
+    if response.xpath(xpath_regatta_summary).extract():
         regatta['summary'] = response.xpath(xpath_regatta_summary).extract()[0]
-    except:
-        pass
+    else:
+        regatta['summary'] = ''
 
 
 def scrape_full_scores(response, scoring):
@@ -124,9 +142,10 @@ def scrape_full_scores(response, scoring):
                     current_school_team_array = row.xpath('td[3]/span/a/text()').extract()
                     if len(current_school_team_array) == 0:
                         current_school_team_array = row.xpath('td[3]/span/text()').extract()
+                    if len(current_school_team_array) == 0:
+                        current_school_team_array = row.xpath('td[3]/text()').extract()
                 elif scoring == '1 Division':
                     current_school_team_array = row.xpath('td[3]/text()').extract()
-                    current_school_team_array[0] = current_school_team_array[0]
                 else:
                     current_school_team_array = row.xpath('following-sibling::tr[1]/td[3]/text()').extract()
                 current_school_team = current_school_team_array[0]
@@ -150,7 +169,7 @@ def scrape_division_score(row):
         if title_actual_score:
             column_text = column.xpath('text()').extract()[0]
             if title_actual_score[0]:
-                column_text += ':letters:'+title_actual_score[0]
+                column_text += ':letters:'+title_actual_score[0][:150]
             results.append(column_text)
     return results
 
@@ -191,6 +210,8 @@ def scrape_normal_competitors_division(response):
             sailor_name_array = row.xpath('*[contains(@class,"sailor-name")]/a/text()').extract()
             if len(sailor_name_array) == 0:  # not a link because sailor has not registered
                 sailor_name_array = row.xpath('*[contains(@class,"sailor-name")]/text()').extract()
+            if len(sailor_name_array) == 0:
+                sailor_name_array = ['no one']
             sailor_name = sailor_name_array[0]
             if len(races_sailed) == 0:
                 school_competitors[position][sailor_name] = u''
@@ -209,8 +230,10 @@ def scrape_normal_competitors_division(response):
 def scrape_singlehanded_competitors(response):
     competitors = dict()
     competitors_division = dict()
-    for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr[contains(@class,"divA")]'):
+    for row in response.xpath('//*[contains(@class,"results coordinate")]/tbody/tr'):
         sailor_name_array = row.xpath('*[contains(@class,"teamname")]/span/a/text()').extract()
+        if len(sailor_name_array) == 0:  # not a link because sailor has not registered
+            sailor_name_array = row.xpath('*[contains(@class,"teamname")]/span/text()').extract()
         if len(sailor_name_array) == 0:  # not a link because sailor has not registered
             sailor_name_array = row.xpath('*[contains(@class,"teamname")]/text()').extract()
         sailor_name = sailor_name_array[0]
@@ -241,7 +264,3 @@ def get_response(url):
     html_body = lxml.html.tostring(lxml_response)
     response = HtmlResponse(url=url, body=html_body)
     return response
-
-
-def get_season_response(season_id):
-    return get_response('http://scores.collegesailing.org/' + season_id)

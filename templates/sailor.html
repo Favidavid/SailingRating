@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block title %}Sailor{% endblock %}
+{% block head %}
+{{ super() }}
+<style type="text/css">
+.important { color: #336699; }
+</style>
+{% endblock %}
+{% block content %}
+<h1>{{ sailor.name_and_year }}</h1>
+<h2><a href="/school/{{ sailor.school.name }}">{{ sailor.school.name }}</a></h2>
+<table class="rating_history">
+    <tr>
+        <td>Season</td>
+        <td>Week</td>
+        <td>Date</td>
+        <td>Rating</td>
+        <td>Rank</td>
+    </tr>
+    {% for rating_stamp in ratings %}
+    <tr>
+        <td>{{ rating_stamp.week.season_id }}</td>
+        <td>{{ rating_stamp.week.week_number }}</td>
+        <td>{{ rating_stamp.week.date }}</td>
+        <td>{{ rating_stamp.rating }}</td>
+        <td>{{ rating_stamp.rank}}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

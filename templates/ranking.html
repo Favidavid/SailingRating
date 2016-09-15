@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block title %}Top 100{% endblock %}
+{% block head %}
+{{ super() }}
+<style type="text/css">
+.important { color: #996633; }
+</style>
+{% endblock %}
+{% block content %}
+<h1>Top 100 Sailors</h1>
+<table class="ranking_list">
+    {% for sailor in ranking_list %}
+    <tr>
+        <td>{{ sailor.current_rank }}</td>
+        <td><a href="/sailor/{{ sailor.href }}">{{ sailor.name_and_year }}</a></td>
+        <td>{{ sailor.current_rating }}</td>
+        <td><a href="/school/{{ sailor.school.name }}">{{ sailor.school.name }}</a></td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
