@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}Top 100{% endblock %}
+{% block title %}Ranking{% endblock %}
 {% block head %}
 {{ super() }}
 <style type="text/css">
@@ -7,7 +7,7 @@
 </style>
 {% endblock %}
 {% block content %}
-<h1>Top 100 Sailors</h1>
+<h1>Ranking of Sailors</h1>
 <table class="ranking_list">
     {% for sailor in ranking_list %}
     <tr>

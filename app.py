@@ -11,8 +11,13 @@ def index():
 
 @app.route('/ranking')
 def ranking():
-    ranking_list = db_session.query(Sailor).order_by(Sailor.current_rating).all()[-100:]
-    ranking_list.reverse()
+    ranking_list = db_session.query(Sailor).order_by(Sailor.current_rank).limit(100)
+    return render_template('ranking.html', ranking_list=ranking_list)
+
+
+@app.route('/ranking/<page_num>')
+def ranking_page(page_num):
+    ranking_list = db_session.query(Sailor).order_by(Sailor.current_rank).offset(100 * (int(page_num) - 1)).limit(100)
     return render_template('ranking.html', ranking_list=ranking_list)
 
 
@@ -25,7 +30,8 @@ def sailor(href):
 @app.route('/school/<href>')
 def school(href):
     school_object = db_session.query(School).filter(School.name == href).all()[0]
-    return render_template('school.html', school=school_object)
+    sailors = db_session.query(Sailor).join(Sailor.school).filter(School.name == href).order_by(Sailor.current_rank)
+    return render_template('school.html', school=school_object, sailors=sailors)
 
 
 if __name__ == '__main__':

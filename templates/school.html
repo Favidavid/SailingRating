@@ -9,7 +9,7 @@
 {% block content %}
 <h1>{{ school.name }}</h1>
 <table class="sailor_list">
-    {% for sailor in school.sailors %}
+    {% for sailor in sailors %}
     <tr><td><a href="/sailor/{{ sailor.href }}">{{ sailor.name_and_year }}</a></td>
         <td>{{ sailor.current_rating }}</td>
         <td>{{ sailor.current_rank }}</td>

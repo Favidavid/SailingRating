@@ -7,7 +7,7 @@ from connection import Base
 class School(Base):
     __tablename__ = 'schools'
     id = Column(Integer, primary_key=True)
-    sailors = relationship("Sailor", backref="school")
+    sailors = relationship("Sailor", backref="school", order_by="Sailor.current_rank")
     name = Column(String(100))
 
     def __init__(self, name):
