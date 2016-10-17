@@ -18,10 +18,10 @@ sailors_regattas = Table('sailors_regattas', Base.metadata,
                          Column('regatta_id', Integer, ForeignKey('regattas.id'))
                          )
 
-schools_regattas = Table('schools_regattas', Base.metadata,
-                         Column('school_id', Integer, ForeignKey('schools.id')),
-                         Column('regatta_id', Integer, ForeignKey('regattas.id'))
-                         )
+# schools_regattas = Table('schools_regattas', Base.metadata,
+#                          Column('school_id', Integer, ForeignKey('schools.id')),
+#                          Column('regatta_id', Integer, ForeignKey('regattas.id'))
+#                          )
 
 sailors_races = Table('sailors_races', Base.metadata,
                       Column('sailor_id', Integer, ForeignKey('sailors.id')),
@@ -95,7 +95,7 @@ class Regatta(Base):
     # races will have races from many divisions, they are treated independently
     races = relationship("Race", backref="regatta", order_by="Race.race_number", cascade="save-update, merge, delete")
     sailors = relationship('Sailor', secondary=sailors_regattas, backref='regattas')
-    schools = relationship('School', secondary=schools_regattas, backref='regattas')
+    # schools = relationship('School', secondary=schools_regattas, backref='regattas')
     name = Column(String(200))
     url = Column(String(200))
     host = Column(String(200))

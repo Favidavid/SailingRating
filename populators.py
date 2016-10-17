@@ -48,7 +48,7 @@ def populate_regatta(regatta_dict, session):
 
     regatta_object = Regatta(
         name=regatta_dict['name'], url=regatta_dict['url'], host=regatta_dict['host'],
-        date=parse_date(regatta_dict['date']), tier=regatta_dict['tier'], boat=regatta_dict['boat'],
+        date=daterangeparser.parse(regatta_dict['date'])[0], tier=regatta_dict['tier'], boat=regatta_dict['boat'],
         scoring=regatta_dict['scoring'], summary=regatta_dict['summary'])
     session.add(regatta_object)
     sailor_objects = []
@@ -159,7 +159,7 @@ def get_school_or_create(school_name, session):
     """Return school object from db. If it does not exist, create one"""
     school_objects = session.query(School).filter(School.name == school_name).all()
     if len(school_objects) == 0:
-        school_object = new_school(school_name)
+        school_object = School(school_name)
         session.add(school_object)
         session.commit()
     else:
@@ -169,17 +169,13 @@ def get_school_or_create(school_name, session):
     return school_object
 
 
-def new_school(school_name):
-    return School(school_name)
-
-
 def finish_value(finish_string, number_of_teams):
     if ':letters:' in finish_string:
         letters_string = finish_string.split(':letters:')[1]
         if ('BKD' in finish_string) or ('RDG' in finish_string):
             return int(re.split('[,:]', letters_string)[0][1:])
         else:
-            return number_of_teams+1
+            return number_of_teams + 1
     else:
         return int(finish_string)
 
