@@ -1,7 +1,7 @@
 import datetime
 host = "mysql+pymysql://root:password@localhost/"
 regatta_domain = "http://scores.collegesailing.org/"
-db = 'new2'
+db = 'v_2_0'
 app = {
     'db_name':'app'
 }
